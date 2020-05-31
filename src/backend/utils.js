@@ -51,7 +51,11 @@ exports.initialize = async () => {
     })
 
     photos.forEach(async (photo, index) => {
-      await fs.exists(photo.replace(pattern.FILE_EXTENSION_REG, '.json'))
+      const googleMetaPath = photo.replace(pattern.FILE_EXTENSION_REG, '.json')
+      const hasGoogleMeta = await fs.exists(googleMetaPath)
+      if (hasGoogleMeta) {
+        const googleMeta = JSON.parse(await fs.readFile(googleMetaPath, 'utf8'))
+      }
 
       focusedWindow.webContents.send('init-progress', {
         status: 'getting-google-photos-meta',
