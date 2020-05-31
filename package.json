@@ -85,6 +85,7 @@
     "glob": "^7.1.6",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
+    "react-grid-gallery": "^0.5.5",
     "styled-components": "^5.1.1"
   }
 }

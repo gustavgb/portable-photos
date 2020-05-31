@@ -1,7 +1,9 @@
 /* globals MAIN_WINDOW_WEBPACK_ENTRY */
 
-const { app, BrowserWindow } = require('electron')
+const { app, BrowserWindow, Menu } = require('electron')
 const path = require('path')
+const utils = require('./backend/utils')
+require('./backend/ipcMain')
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) { // eslint-disable-line global-require
@@ -23,6 +25,28 @@ const createWindow = () => {
 
   // Open the DevTools.
   mainWindow.webContents.openDevTools()
+
+  const menu = Menu.buildFromTemplate([
+    {
+      label: 'File',
+      submenu: [
+        {
+          label: 'Set library location',
+          click () {
+            utils.setLibraryLocation()
+          }
+        },
+        {
+          label: 'Quit',
+          click () {
+            app.quit()
+          }
+        }
+      ]
+    }
+  ])
+
+  Menu.setApplicationMenu(menu)
 }
 
 // This method will be called when Electron has finished

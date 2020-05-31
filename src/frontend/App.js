@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import styled from 'styled-components'
 
 const Root = styled.div`
@@ -6,10 +6,20 @@ const Root = styled.div`
   font-style: italic;
 `
 
-const App = () => (
-  <Root>
-    This is the app! Yes dude
-  </Root>
-)
+const App = () => {
+  useEffect(() => {
+    window.ipcListen('send-app-settings', (event, arg) => {
+      console.log(arg)
+    })
+
+    window.ipcSend('request-app-settings')
+  }, [])
+
+  return (
+    <Root>
+      This is the app! Yes dude
+    </Root>
+  )
+}
 
 export default App
