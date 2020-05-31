@@ -84,6 +84,7 @@
     "electron-squirrel-startup": "^1.0.0",
     "glob": "^7.1.6",
     "react": "^16.13.1",
-    "react-dom": "^16.13.1"
+    "react-dom": "^16.13.1",
+    "styled-components": "^5.1.1"
   }
 }
