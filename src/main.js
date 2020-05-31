@@ -13,12 +13,14 @@ if (require('electron-squirrel-startup')) { // eslint-disable-line global-requir
 const createWindow = () => {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
-    width: 800,
-    height: 600,
+    width: 1200,
+    height: 900,
     webPreferences: {
       preload: path.resolve(__dirname, 'preload.js')
     }
   })
+
+  mainWindow.maximize()
 
   // and load the index.html of the app.
   mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY)
@@ -31,15 +33,20 @@ const createWindow = () => {
       label: 'File',
       submenu: [
         {
-          label: 'Set library location',
-          click () {
-            utils.setLibraryLocation()
-          }
-        },
-        {
           label: 'Quit',
           click () {
             app.quit()
+          }
+        }
+      ]
+    },
+    {
+      label: 'Library',
+      submenu: [
+        {
+          label: 'Set library location',
+          click () {
+            utils.setLibraryLocation()
           }
         }
       ]

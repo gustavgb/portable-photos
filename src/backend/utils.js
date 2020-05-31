@@ -1,7 +1,7 @@
 const app = require('electron')
 const fs = require('./fileSystem')
 const dialog = app.dialog
-const { APP_DIR, SETTINGS_FILE } = require('./constants')
+const { APP_DIR, SETTINGS_FILE, pattern } = require('./constants')
 const window = require('electron').BrowserWindow
 
 exports.setLibraryLocation = async () => {
@@ -10,9 +10,7 @@ exports.setLibraryLocation = async () => {
 
     const libraryLocation = result.filePaths[0]
 
-    try {
-      await fs.lstat(APP_DIR)
-    } catch (e) {
+    if ((await fs.exists(APP_DIR)) === false) {
       await fs.mkdir(APP_DIR)
     }
 
@@ -24,6 +22,42 @@ exports.setLibraryLocation = async () => {
 
     const focusedWindow = window.getFocusedWindow()
     focusedWindow.webContents.send('send-app-settings', settings)
+  } catch (e) {
+    console.log(e)
+  }
+}
+
+exports.initialize = async () => {
+  const focusedWindow = window.getFocusedWindow()
+
+  console.log('Begin initialize')
+
+  focusedWindow.webContents.send('init-progress', {
+    status: 'finding-photos',
+    progress: 0
+  })
+
+  try {
+    const settings = JSON.parse(await fs.readFile(SETTINGS_FILE, 'utf8'))
+
+    const files = await fs.glob(`${settings.library}/**/*`)
+    const photos = files.filter(file => pattern.PHOTO_REG.test(file))
+
+    console.log('Found ' + photos.length + ' photos')
+
+    focusedWindow.webContents.send('init-progress', {
+      status: 'getting-google-photos-meta',
+      progress: 0
+    })
+
+    photos.forEach(async (photo, index) => {
+      await fs.exists(photo.replace(pattern.FILE_EXTENSION_REG, '.json'))
+
+      focusedWindow.webContents.send('init-progress', {
+        status: 'getting-google-photos-meta',
+        progress: index / photos.length
+      })
+    })
   } catch (e) {
     console.log(e)
   }
