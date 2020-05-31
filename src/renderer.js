@@ -1,11 +1,10 @@
 import './index.css'
+import React from 'react'
+import ReactDOM from 'react-dom'
+import App from './frontend/App'
 
-console.log('👋 This message is being logged by "renderer.js", included via webpack')
-
-window.selectFolder = function () {
-  window.nodeSelectFolder().then((result) => console.log(result))
-}
-
-window.discoverFiles = function (folder) {
-  window.nodeDiscoverFiles(folder).then((result) => console.log(result))
-}
+ReactDOM.render(
+  <App />,
+  document.getElementById('app')
+)
+module.hot.accept()
