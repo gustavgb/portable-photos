@@ -30,9 +30,11 @@ exports.setLibraryLocation = async () => {
 const createMetaReader = (settings) => async (metaPath) => {
   try {
     const metadata = await fs.readJson(metaPath)
+    const hasThumbFile = (metadata && metadata.thumbPath) ? (await fs.exists(metadata.thumbPath)) : false
 
     if (
       metadata &&
+      hasThumbFile &&
       metadata.size &&
       metadata.size.width &&
       metadata.size.height &&
@@ -196,7 +198,7 @@ exports.initialize = async () => {
       progress: 0
     })
 
-    const photosWithMissing = photos.filter(photo => !validMetaData.find(meta => meta.path === photo))
+    const photosWithMissing = photos.filter(photo => !validMetaData.find(meta => meta && meta.path === photo))
 
     const createMetaFuncs = photosWithMissing.map(
       (photo, index) => () =>
