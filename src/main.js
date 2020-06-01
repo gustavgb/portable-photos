@@ -48,6 +48,12 @@ const createWindow = () => {
           click () {
             utils.setLibraryLocation()
           }
+        },
+        {
+          label: 'Scan library',
+          click () {
+            utils.initialize()
+          }
         }
       ]
     }

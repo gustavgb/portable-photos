@@ -1,3 +1,6 @@
+import 'regenerator-runtime'
+import 'core-js'
+
 import './index.css'
 import React from 'react'
 import ReactDOM from 'react-dom'

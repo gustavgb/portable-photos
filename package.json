@@ -81,7 +81,9 @@
     "style-loader": "^0.23.1"
   },
   "dependencies": {
+    "core-js": "^3.6.5",
     "electron-squirrel-startup": "^1.0.0",
+    "exif": "^0.6.0",
     "glob": "^7.1.6",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
@@ -89,6 +91,7 @@
     "react-redux": "^7.2.0",
     "redux": "^4.0.5",
     "redux-logger": "^3.0.6",
+    "regenerator-runtime": "^0.13.5",
     "styled-components": "^5.1.1"
   }
 }

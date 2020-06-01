@@ -25,10 +25,12 @@ const App = () => {
 
       dispatch(setSettings(settings))
     })
-    window.ipcListen('send-library-data', (event, data) => {
-      console.log('Library data:', data)
+    window.ipcListen('send-library-data', async (event, path) => {
+      console.log('Library data can be found at ' + path)
 
-      dispatch(setLibraryData(data))
+      const libraryData = await window.readLibraryData(path)
+
+      dispatch(setLibraryData(libraryData))
     })
     window.ipcListen('init-progress', (event, progress) => {
       console.log(`${(progress.progress * 100).toFixed(2)}%: ${progress.status}`)

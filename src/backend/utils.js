@@ -3,6 +3,7 @@ const fs = require('./fileSystem')
 const dialog = app.dialog
 const { APP_DIR, SETTINGS_FILE, pattern } = require('./constants')
 const window = require('electron').BrowserWindow
+const path = require('path')
 
 exports.setLibraryLocation = async () => {
   try {
@@ -27,41 +28,92 @@ exports.setLibraryLocation = async () => {
   }
 }
 
+const readPhotoMeta = async (photo, index) => {
+  try {
+    const meta = {
+      path: photo
+    }
+    const googleMetaPath = photo + '.json'
+    const hasGoogleMeta = await fs.exists(googleMetaPath)
+    if (hasGoogleMeta) {
+      const googleMeta = await fs.readJson(googleMetaPath)
+
+      meta.photoTakenTime = googleMeta.photoTakenTime.timestamp
+    }
+
+    // if (pattern.JPG_EXTENSION_REG.test(photo)) {
+    //   const exifData = await fs.readExif(photo)
+    //   const createDateRaw = exifData.exif.CreateDate
+    //   const createDate = createDateRaw.split(' ').map((str, i) => i === 0 ? str.replace(/:/g, '-') : str).join(' ')
+
+    //   meta.createDate = createDate
+    // }
+
+    return meta
+  } catch (e) {
+    console.log(e)
+    console.log(photo)
+  }
+}
+
+const promiseSerial = funcs =>
+  funcs.reduce((promise, func) =>
+    promise.then(result => func().then(Array.prototype.concat.bind(result))),
+  Promise.resolve([]))
+
 exports.initialize = async () => {
   const focusedWindow = window.getFocusedWindow()
 
   console.log('Begin initialize')
 
   focusedWindow.webContents.send('init-progress', {
-    status: 'finding-photos',
+    status: 'Finding photos',
     progress: 0
   })
 
   try {
-    const settings = JSON.parse(await fs.readFile(SETTINGS_FILE, 'utf8'))
+    const settings = await fs.readJson(SETTINGS_FILE)
 
     const files = await fs.glob(`${settings.library}/**/*`)
-    const photos = files.filter(file => pattern.PHOTO_REG.test(file))
+    const photos = files.filter(file => pattern.FILE_EXTENSION_REG.test(file) && pattern.PHOTO_REG.test(file))
 
     console.log('Found ' + photos.length + ' photos')
 
     focusedWindow.webContents.send('init-progress', {
-      status: 'getting-google-photos-meta',
+      status: 'Getting metadata from photos',
       progress: 0
     })
 
-    photos.forEach(async (photo, index) => {
-      const googleMetaPath = photo.replace(pattern.FILE_EXTENSION_REG, '.json')
-      const hasGoogleMeta = await fs.exists(googleMetaPath)
-      if (hasGoogleMeta) {
-        const googleMeta = JSON.parse(await fs.readFile(googleMetaPath, 'utf8'))
-      }
+    const readPhotoFuncs = photos.map(
+      (photo, index) => () =>
+        readPhotoMeta(photo, index)
+          .then(res => {
+            focusedWindow.webContents.send('init-progress', {
+              status: 'Getting metadata from photos',
+              progress: index / photos.length
+            })
 
-      focusedWindow.webContents.send('init-progress', {
-        status: 'getting-google-photos-meta',
-        progress: index / photos.length
-      })
+            return res
+          })
+    )
+
+    const photoIndex = await promiseSerial(readPhotoFuncs)
+
+    focusedWindow.webContents.send('init-progress', {
+      status: 'Writing metadata',
+      progress: 0
     })
+
+    console.log(photoIndex)
+
+    const libraryData = {
+      photos: photoIndex
+    }
+
+    const libraryDataPath = path.resolve(settings.library, 'libraryData.json')
+    await fs.writeFile(libraryDataPath, JSON.stringify(libraryData), 'utf8')
+
+    focusedWindow.webContents.send('send-library-data', libraryDataPath)
   } catch (e) {
     console.log(e)
   }

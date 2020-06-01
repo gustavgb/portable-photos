@@ -26,13 +26,9 @@ ipcMain.on('request-library-data', async (event) => {
   try {
     const settings = JSON.parse(await fs.readFile(SETTINGS_FILE, 'utf8'))
     const libraryDataPath = path.resolve(settings.library, 'libraryData.json')
-    let libraryData
-    if (await fs.exists(libraryDataPath)) {
-      libraryData = await fs.readFile(libraryDataPath)
-    }
 
-    event.reply('send-library-data', libraryData)
-    event.returnValue = libraryData
+    event.reply('send-library-data', libraryDataPath)
+    event.returnValue = libraryDataPath
   } catch (e) {
     console.log(e)
     event.returnValue = e
