@@ -118,7 +118,11 @@ exports.initialize = async () => {
       photos: photoIndex
     }
 
-    const libraryDataPath = path.resolve(settings.library, 'libraryData.json')
+    if (await fs.exists(path.resolve(settings.library, '.library')) === false) {
+      await fs.mkdir(path.resolve(settings.library, '.library'))
+    }
+
+    const libraryDataPath = path.resolve(settings.library, '.library/libraryData.json')
     await fs.writeFile(libraryDataPath, JSON.stringify(libraryData), 'utf8')
 
     focusedWindow.webContents.send('send-library-data', libraryDataPath)
