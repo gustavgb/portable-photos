@@ -3,6 +3,7 @@
 const { app, BrowserWindow, Menu } = require('electron')
 const path = require('path')
 const utils = require('./backend/utils')
+const { setMainWindow } = require('./backend/mainWindowState')
 require('./backend/ipcMain')
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
@@ -19,6 +20,8 @@ const createWindow = () => {
       preload: path.resolve(__dirname, 'preload.js')
     }
   })
+
+  setMainWindow(mainWindow)
 
   mainWindow.maximize()
 

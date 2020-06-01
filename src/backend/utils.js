@@ -1,9 +1,8 @@
-const app = require('electron')
+const { dialog, nativeImage, BrowserWindow: window } = require('electron')
 const fs = require('./fileSystem')
-const dialog = app.dialog
 const { APP_DIR, SETTINGS_FILE, pattern } = require('./constants')
-const window = require('electron').BrowserWindow
 const path = require('path')
+const { getMainWindow } = require('./mainWindowState')
 
 exports.setLibraryLocation = async () => {
   try {
@@ -28,7 +27,32 @@ exports.setLibraryLocation = async () => {
   }
 }
 
-const readPhotoMeta = async (photo, index) => {
+const createMetaReader = (settings) => async (metaPath) => {
+  try {
+    const metadata = await fs.readJson(metaPath)
+
+    if (
+      metadata &&
+      metadata.size &&
+      metadata.size.width &&
+      metadata.size.height &&
+      metadata.thumbSize &&
+      metadata.thumbSize.width &&
+      metadata.thumbSize.height &&
+      metadata.thumbPath &&
+      metadata.path
+    ) {
+      return metadata
+    }
+
+    return null
+  } catch (e) {
+    console.log(e)
+    console.log(metaPath)
+  }
+}
+
+const createMetaWriter = (settings) => async (photo) => {
   try {
     const meta = {
       path: photo
@@ -55,7 +79,32 @@ const readPhotoMeta = async (photo, index) => {
       }
     }
 
-    return meta
+    const image = nativeImage.createFromPath(photo)
+    const size = image.getSize()
+    const thumb = image.resize({
+      width: 320,
+      height: Math.ceil(size.height / size.width * 320)
+    })
+    const thumbSize = thumb.getSize()
+
+    const fileName = photo.split('/').pop()
+    const thumbPath = path.resolve(settings.library, `.library/thumbnails/${fileName}.jpg`)
+    const metaPath = path.resolve(settings.library, `.library/metadata/${fileName}.json`)
+
+    await fs.writeFile(thumbPath, thumb.toJPEG(50))
+
+    meta.size = {
+      width: size.width,
+      height: size.height
+    }
+    meta.thumbSize = {
+      width: thumbSize.width,
+      height: thumbSize.height
+    }
+    meta.thumbPath = thumbPath
+    meta.metaPath = metaPath
+
+    await fs.writeFile(metaPath, JSON.stringify(meta), 'utf8')
   } catch (e) {
     console.log(e)
     console.log(photo)
@@ -67,37 +116,72 @@ const promiseSerial = funcs =>
     promise.then(result => func().then(Array.prototype.concat.bind(result))),
   Promise.resolve([]))
 
+const createIpcSender = () => {
+  let focusedWindow = getMainWindow()
+
+  return (name, arg) => {
+    if (!focusedWindow) {
+      focusedWindow = getMainWindow()
+    }
+
+    if (focusedWindow) {
+      focusedWindow.webContents.send(name, arg)
+    }
+  }
+}
+
 exports.initialize = async () => {
-  const focusedWindow = window.getFocusedWindow()
+  const sender = createIpcSender()
 
   console.log('Begin initialize')
 
-  focusedWindow.webContents.send('init-start')
+  sender('init-start')
 
-  focusedWindow.webContents.send('init-progress', {
-    status: 'Finding photos',
+  sender('init-progress', {
+    status: 'Preparing',
     progress: 0
   })
 
   try {
     const settings = await fs.readJson(SETTINGS_FILE)
 
-    const files = await fs.glob(`${settings.library}/**/*`)
-    const photos = files.filter(file => pattern.FILE_EXTENSION_REG.test(file) && pattern.PHOTO_REG.test(file))
+    const readPhotoMeta = createMetaReader(settings)
+    const createPhotoMeta = createMetaWriter(settings)
 
-    console.log('Found ' + photos.length + ' photos')
+    if (await fs.exists(path.resolve(settings.library, '.library')) === false) {
+      await fs.mkdir(path.resolve(settings.library, '.library'))
+    }
 
-    focusedWindow.webContents.send('init-progress', {
-      status: 'Getting metadata from photos',
+    if (await fs.exists(path.resolve(settings.library, '.library/thumbnails')) === false) {
+      await fs.mkdir(path.resolve(settings.library, '.library/thumbnails'))
+    }
+
+    if (await fs.exists(path.resolve(settings.library, '.library/metadata')) === false) {
+      await fs.mkdir(path.resolve(settings.library, '.library/metadata'))
+    }
+
+    sender('init-progress', {
+      status: 'Finding photos',
       progress: 0
     })
 
-    const readPhotoFuncs = photos.map(
-      (photo, index) => () =>
-        readPhotoMeta(photo, index)
+    const files = await fs.glob(`${settings.library}/**/*`)
+    const photos = files.filter(file =>
+      !pattern.LIBRARY_FILE_REG.test(file) &&
+      pattern.FILE_EXTENSION_REG.test(file) &&
+      pattern.PHOTO_REG.test(file)
+    )
+    let metadataFiles = await fs.glob(`${settings.library}/.library/metadata/*`)
+
+    console.log('Found ' + photos.length + ' photos')
+    console.log('Found ' + metadataFiles.length + ' meta files')
+
+    const readMetaFuncs = metadataFiles.map(
+      (meta, index) => () =>
+        readPhotoMeta(meta)
           .then(res => {
-            focusedWindow.webContents.send('init-progress', {
-              status: 'Getting metadata from photos',
+            sender('init-progress', {
+              status: 'Getting metadata',
               progress: index / photos.length
             })
 
@@ -105,28 +189,58 @@ exports.initialize = async () => {
           })
     )
 
-    const photoIndex = await promiseSerial(readPhotoFuncs)
+    const validMetaData = await promiseSerial(readMetaFuncs)
 
-    focusedWindow.webContents.send('init-progress', {
-      status: 'Writing metadata',
+    sender('init-progress', {
+      status: 'Finding files without metadata',
       progress: 0
     })
 
-    console.log(photoIndex)
+    const photosWithMissing = photos.filter(photo => !validMetaData.find(meta => meta.path === photo))
+
+    const createMetaFuncs = photosWithMissing.map(
+      (photo, index) => () =>
+        createPhotoMeta(photo)
+          .then(res => {
+            sender('init-progress', {
+              status: 'Creating metadata',
+              progress: index / photosWithMissing.length
+            })
+
+            return res
+          })
+    )
+
+    await promiseSerial(createMetaFuncs)
+
+    metadataFiles = await fs.glob(`${settings.library}/.library/metadata/*`)
+
+    const indexMetaFuncs = metadataFiles.map(
+      (meta, index) => () =>
+        readPhotoMeta(meta)
+          .then(res => {
+            sender('init-progress', {
+              status: 'Indexing',
+              progress: index / photosWithMissing.length
+            })
+
+            return res
+          })
+    )
+
+    const photoIndex = await promiseSerial(indexMetaFuncs)
 
     const libraryData = {
       photos: photoIndex
     }
 
-    if (await fs.exists(path.resolve(settings.library, '.library')) === false) {
-      await fs.mkdir(path.resolve(settings.library, '.library'))
-    }
-
     const libraryDataPath = path.resolve(settings.library, '.library/libraryData.json')
     await fs.writeFile(libraryDataPath, JSON.stringify(libraryData), 'utf8')
 
-    focusedWindow.webContents.send('send-library-data', libraryDataPath)
-    focusedWindow.webContents.send('init-end')
+    sender('send-library-data', libraryDataPath)
+    sender('init-end')
+
+    console.log('Finish initialize')
   } catch (e) {
     console.log(e)
   }

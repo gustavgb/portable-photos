@@ -34,7 +34,7 @@ const App = () => {
       dispatch(setLibraryData(libraryData))
     })
 
-    window.ipcSend('request-app-settings')
+    window.ipcSend('request-library-init')
   }, [])
 
   const handleInit = useCallback(() => {

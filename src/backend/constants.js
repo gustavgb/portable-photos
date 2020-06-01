@@ -9,6 +9,7 @@ const SETTINGS_FILE = path.resolve(APP_DIR, 'settings.json')
 const PHOTO_REG = /^.*(?<!\.json)$/i
 const FILE_EXTENSION_REG = /\.\w*?$/i
 const JPG_EXTENSION_REG = /\.(jpg|jpeg)$/i
+const LIBRARY_FILE_REG = /^.*\.library.*$/
 
 module.exports = {
   APP_DIR,
@@ -16,6 +17,7 @@ module.exports = {
   pattern: {
     PHOTO_REG,
     FILE_EXTENSION_REG,
-    JPG_EXTENSION_REG
+    JPG_EXTENSION_REG,
+    LIBRARY_FILE_REG
   }
 }
