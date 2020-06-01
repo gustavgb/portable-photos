@@ -6,6 +6,7 @@ import Button from './Blocks/Button'
 import { setSettings, setLibraryData } from './actions'
 import Typography from './Blocks/Typography'
 import ThemeProvider from './theme'
+import InitProgress from './Components/InitProgress'
 
 const Root = styled.div`
   padding: 5px;
@@ -32,9 +33,6 @@ const App = () => {
 
       dispatch(setLibraryData(libraryData))
     })
-    window.ipcListen('init-progress', (event, progress) => {
-      console.log(`${(progress.progress * 100).toFixed(2)}%: ${progress.status}`)
-    })
 
     window.ipcSend('request-app-settings')
   }, [])
@@ -53,6 +51,7 @@ const App = () => {
           <Button onClick={handleInit}>Initialize</Button>
         </Typography>
       )}
+      <InitProgress />
     </Root>
   )
 }

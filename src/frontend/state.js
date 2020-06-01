@@ -11,6 +11,10 @@ const defaultState = {
   settings: {
     status: 'ready',
     library: null
+  },
+  init: {
+    isInitializing: false,
+    progress: null
   }
 }
 
@@ -30,6 +34,23 @@ const reducer = (state = { ...defaultState }, action) => {
         library: {
           status: 'loaded',
           data: action.libraryData
+        }
+      }
+    case 'SET_INIT_PROGRESS':
+      return {
+        ...state,
+        init: {
+          ...state.init,
+          progress: action.progress,
+          isInitializing: true
+        }
+      }
+    case 'SET_INIT_BOOLEAN':
+      return {
+        ...state,
+        init: {
+          ...state.init,
+          isInitializing: action.value
         }
       }
     default:

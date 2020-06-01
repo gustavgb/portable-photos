@@ -38,16 +38,22 @@ const readPhotoMeta = async (photo, index) => {
     if (hasGoogleMeta) {
       const googleMeta = await fs.readJson(googleMetaPath)
 
-      meta.photoTakenTime = googleMeta.photoTakenTime.timestamp
+      meta.createDate = googleMeta.photoTakenTime.timestamp * 1000
     }
 
-    // if (pattern.JPG_EXTENSION_REG.test(photo)) {
-    //   const exifData = await fs.readExif(photo)
-    //   const createDateRaw = exifData.exif.CreateDate
-    //   const createDate = createDateRaw.split(' ').map((str, i) => i === 0 ? str.replace(/:/g, '-') : str).join(' ')
-
-    //   meta.createDate = createDate
-    // }
+    if (pattern.JPG_EXTENSION_REG.test(photo)) {
+      const exifData = await fs.readExif(photo)
+      let createDateRaw
+      if (exifData.exif) {
+        createDateRaw = exifData.exif.CreateDate
+      } else if (exifData.image) {
+        createDateRaw = exifData.image.ModifyDate
+      }
+      if (createDateRaw) {
+        const createDate = createDateRaw.split(' ').map((str, i) => i === 0 ? str.replace(/:/g, '-') : str).join(' ')
+        meta.createDate = new Date(createDate).getTime()
+      }
+    }
 
     return meta
   } catch (e) {
@@ -65,6 +71,8 @@ exports.initialize = async () => {
   const focusedWindow = window.getFocusedWindow()
 
   console.log('Begin initialize')
+
+  focusedWindow.webContents.send('init-start')
 
   focusedWindow.webContents.send('init-progress', {
     status: 'Finding photos',
@@ -114,6 +122,7 @@ exports.initialize = async () => {
     await fs.writeFile(libraryDataPath, JSON.stringify(libraryData), 'utf8')
 
     focusedWindow.webContents.send('send-library-data', libraryDataPath)
+    focusedWindow.webContents.send('init-end')
   } catch (e) {
     console.log(e)
   }

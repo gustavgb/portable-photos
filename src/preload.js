@@ -17,7 +17,9 @@ window.ipcSend = function (name, arg) {
 }
 
 window.ipcListen = function (name, listener) {
-  return ipcRenderer.on(name, listener)
+  ipcRenderer.on(name, listener)
+
+  return () => ipcRenderer.off(name, listener)
 }
 
 window.readLibraryData = async function (libraryDataPath) {
