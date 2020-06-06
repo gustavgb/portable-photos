@@ -69,6 +69,11 @@ const reducer = (state = { ...defaultState }, action) => {
           [action.key]: false
         }
       }
+    case 'RESET_KEYS':
+      return {
+        ...state,
+        keys: {}
+      }
     default:
       return state
   }

@@ -39,14 +39,19 @@ const App = () => {
     const handleKeyDown = (e) => {
       dispatch({ type: 'KEY_DOWN', key: e.key })
     }
+    const handleBlur = () => {
+      dispatch({ type: 'RESET_KEYS' })
+    }
     window.addEventListener('keyup', handleKeyUp)
     window.addEventListener('keydown', handleKeyDown)
+    window.addEventListener('blur', handleBlur)
 
     return () => {
       closeSettingsListener()
       closeLibraryListener()
       window.removeEventListener('keyup', handleKeyUp)
       window.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('blur', handleBlur)
     }
   }, [])
 

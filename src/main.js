@@ -25,12 +25,7 @@ const createWindow = () => {
   setMainWindow(mainWindow)
 
   mainWindow.maximize()
-
-  // and load the index.html of the app.
   mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY)
-
-  // Open the DevTools.
-  mainWindow.webContents.openDevTools()
 
   const menu = Menu.buildFromTemplate([
     {
@@ -57,6 +52,22 @@ const createWindow = () => {
           label: 'Scan library',
           click () {
             utils.initialize()
+          }
+        }
+      ]
+    },
+    {
+      label: 'Developer',
+      submenu: [
+        {
+          label: 'Reload',
+          role: 'forceReload'
+        },
+        {
+          label: 'Toggle Developer Tools',
+          accelerator: process.platform === 'darwin' ? 'Alt+Command+I' : 'Ctrl+Shift+I',
+          click (item, focusedWindow) {
+            if (focusedWindow) focusedWindow.webContents.toggleDevTools()
           }
         }
       ]

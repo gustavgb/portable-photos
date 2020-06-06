@@ -1,4 +1,4 @@
-import React, { useReducer, useEffect, useRef, useState } from 'react'
+import React, { useReducer, useEffect, useState } from 'react'
 import styled from 'styled-components'
 import Photo from './Photo'
 import { useSelector } from 'react-redux'
@@ -39,7 +39,7 @@ const Gallery = ({ photos: libraryPhotos }) => {
   const keys = useSelector(state => state.keys)
   const [lastSelected, setLastSelected] = useState(-1)
   const [hovered, setHover] = useState(-1)
-  const selectMultiple = Boolean(keys.Shift)
+  const selectMultiple = Boolean(keys.Shift) && lastSelected !== -1
   const selectStart = selectMultiple ? Math.min(hovered, lastSelected) : -1
   const selectEnd = selectMultiple ? Math.max(hovered, lastSelected) : -1
 
