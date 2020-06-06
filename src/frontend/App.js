@@ -8,7 +8,6 @@ import InitProgress from './Components/InitProgress'
 import Gallery from './Components/Gallery'
 
 const Root = styled.div`
-  padding: 5px;
 `
 
 const App = () => {
