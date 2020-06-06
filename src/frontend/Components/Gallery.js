@@ -3,13 +3,17 @@ import styled from 'styled-components'
 import Photo from './Photo'
 import { useSelector } from 'react-redux'
 
+const encodePath = (path) => {
+  return encodeURI(path).replace(/\)/g, 'CLOSING_PAREN').replace(/\(/g, 'OPEN_PAREN')
+}
+
 const reducer = (state, action) => {
   switch (action.type) {
     case 'SET_IMAGES':
       return action.images.map((image, index) => ({
         index,
-        src: `http://localhost:3001${image.path}`,
-        thumbnail: `http://localhost:3001${image.thumbPath}`,
+        src: `http://localhost:3001${encodePath(image.path)}`,
+        thumbnail: `http://localhost:3001${encodePath(image.thumbPath)}`,
         thumbnailHeight: image.thumbSize.height,
         thumbnailWidth: image.thumbSize.width,
         isSelected: false

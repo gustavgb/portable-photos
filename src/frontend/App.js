@@ -14,7 +14,6 @@ const Root = styled.div`
 const App = () => {
   const dispatch = useDispatch()
   const libraryData = useSelector(state => state.library.data)
-  const libraryStatus = useSelector(state => state.library.status)
   const isInitializing = useSelector(state => state.init.isInitializing)
 
   useEffect(() => {
@@ -32,6 +31,7 @@ const App = () => {
 
       dispatch(setLibraryData(libraryData))
     })
+
     window.ipcSend('request-library-data')
 
     const handleKeyUp = (e) => {
@@ -58,14 +58,10 @@ const App = () => {
 
   return (
     <Root>
-      {libraryStatus === 'loaded' && (
-        <>
-          {isInitializing && !libraryData
-            ? <InitScreen />
-            : <Gallery photos={libraryData ? libraryData.photos : []} />}
-          <InitProgress />
-        </>
-      )}
+      {isInitializing && !libraryData
+        ? <InitScreen />
+        : <Gallery photos={libraryData ? libraryData.photos : []} />}
+      <InitProgress />
     </Root>
   )
 }

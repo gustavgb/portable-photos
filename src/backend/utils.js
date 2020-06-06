@@ -56,7 +56,8 @@ const createMetaReader = (settings) => async (metaPath) => {
       metadata.thumbSize.width &&
       metadata.thumbSize.height &&
       metadata.thumbPath &&
-      metadata.path
+      metadata.path &&
+      metadata.createDate
     ) {
       return metadata
     }
@@ -81,19 +82,21 @@ const createMetaWriter = (settings) => async (photo) => {
       meta.createDate = googleMeta.photoTakenTime.timestamp * 1000
     }
 
-    if (pattern.JPG_EXTENSION_REG.test(photo)) {
-      const exifData = await fs.readExif(photo)
-      let createDateRaw
-      if (exifData.exif) {
-        createDateRaw = exifData.exif.CreateDate
-      } else if (exifData.image) {
-        createDateRaw = exifData.image.ModifyDate
+    try {
+      if (pattern.JPG_EXTENSION_REG.test(photo)) {
+        const exifData = await fs.readExif(photo)
+        let createDateRaw
+        if (exifData.exif) {
+          createDateRaw = exifData.exif.CreateDate
+        } else if (exifData.image) {
+          createDateRaw = exifData.image.ModifyDate
+        }
+        if (createDateRaw) {
+          const createDate = createDateRaw.split(' ').map((str, i) => i === 0 ? str.replace(/:/g, '-') : str).join(' ')
+          meta.createDate = new Date(createDate).getTime()
+        }
       }
-      if (createDateRaw) {
-        const createDate = createDateRaw.split(' ').map((str, i) => i === 0 ? str.replace(/:/g, '-') : str).join(' ')
-        meta.createDate = new Date(createDate).getTime()
-      }
-    }
+    } catch (e) {}
 
     const image = nativeImage.createFromPath(photo)
     const size = image.getSize()
@@ -132,8 +135,14 @@ const promiseSerial = funcs =>
     promise.then(result => func().then(Array.prototype.concat.bind(result))),
   Promise.resolve([]))
 
+const cancelledInits = {
+  counter: 0
+}
+
 exports.initialize = async () => {
   const sender = createIpcSender()
+
+  const id = ++cancelledInits.counter
 
   console.log('Begin initialize')
 
@@ -146,6 +155,26 @@ exports.initialize = async () => {
 
   try {
     const settings = await fs.readJson(SETTINGS_FILE)
+    const libraryDataPath = path.resolve(settings.library, '.library/libraryData.json')
+
+    const createAndWriteIndex = async (meta) => {
+      const filteredMeta = meta.filter(Boolean)
+      filteredMeta.sort((a, b) => {
+        if (a.createDate < b.createDate) {
+          return 1
+        } else if (a.createDate > b.createDate) {
+          return -1
+        }
+        return 0
+      })
+
+      const libraryData = {
+        photos: filteredMeta
+      }
+
+      await fs.writeFile(libraryDataPath, JSON.stringify(libraryData), 'utf8')
+      sender('send-library-data', libraryDataPath)
+    }
 
     const readPhotoMeta = createMetaReader(settings)
     const createPhotoMeta = createMetaWriter(settings)
@@ -179,8 +208,12 @@ exports.initialize = async () => {
     console.log('Found ' + metadataFiles.length + ' meta files')
 
     const readMetaFuncs = metadataFiles.map(
-      (meta, index) => () =>
-        readPhotoMeta(meta)
+      (meta, index) => () => {
+        if (cancelledInits[id]) {
+          return Promise.resolve()
+        }
+
+        return readPhotoMeta(meta)
           .then(res => {
             sender('init-progress', {
               status: 'Getting metadata',
@@ -189,20 +222,32 @@ exports.initialize = async () => {
 
             return res
           })
+      }
     )
 
     const validMetaData = await promiseSerial(readMetaFuncs)
+
+    await createAndWriteIndex(validMetaData)
 
     sender('init-progress', {
       status: 'Finding files without metadata',
       progress: 0
     })
 
-    const photosWithMissing = photos.filter(photo => !validMetaData.find(meta => meta && meta.path === photo))
+    let photosWithMissing = []
+    if (!cancelledInits[id]) {
+      photosWithMissing = photos.filter(photo => !validMetaData.find(meta => meta && meta.path === photo))
+    }
+
+    console.log('Found ' + photosWithMissing.length + ' photos without valid metadata')
 
     const createMetaFuncs = photosWithMissing.map(
-      (photo, index) => () =>
-        createPhotoMeta(photo)
+      (photo, index) => () => {
+        if (cancelledInits[id]) {
+          return Promise.resolve()
+        }
+
+        return createPhotoMeta(photo)
           .then(res => {
             sender('init-progress', {
               status: 'Creating metadata',
@@ -211,6 +256,7 @@ exports.initialize = async () => {
 
             return res
           })
+      }
     )
 
     await promiseSerial(createMetaFuncs)
@@ -223,7 +269,7 @@ exports.initialize = async () => {
           .then(res => {
             sender('init-progress', {
               status: 'Indexing',
-              progress: index / photosWithMissing.length
+              progress: index / metadataFiles.length
             })
 
             return res
@@ -232,18 +278,16 @@ exports.initialize = async () => {
 
     const photoIndex = await promiseSerial(indexMetaFuncs)
 
-    const libraryData = {
-      photos: photoIndex
-    }
+    await createAndWriteIndex(photoIndex)
 
-    const libraryDataPath = path.resolve(settings.library, '.library/libraryData.json')
-    await fs.writeFile(libraryDataPath, JSON.stringify(libraryData), 'utf8')
-
-    sender('send-library-data', libraryDataPath)
     sender('init-end')
 
     console.log('Finish initialize')
   } catch (e) {
     console.log(e)
   }
+}
+
+exports.cancelInit = () => {
+  cancelledInits[cancelledInits.counter] = true
 }

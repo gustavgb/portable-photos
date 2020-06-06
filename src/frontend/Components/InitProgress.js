@@ -20,6 +20,10 @@ const InitProgressBox = styled.div`
   align-items: center;
 `
 
+const Spacer = styled.span`
+  flex: 1 0 auto;
+`
+
 const InitProgress = () => {
   const dispatch = useDispatch()
   const progress = useSelector(state => state.init.progress)
@@ -43,9 +47,15 @@ const InitProgress = () => {
     }
   }, [])
 
+  const handleCancel = () => {
+    window.ipcSend('request-init-cancel')
+  }
+
   return (
     <InitProgressBox show={isInitializing}>
       {progress || ''}
+      <Spacer />
+      <button onClick={handleCancel}>Cancel</button>
     </InitProgressBox>
   )
 }

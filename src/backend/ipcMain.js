@@ -2,7 +2,7 @@ const { ipcMain } = require('electron')
 const fs = require('./fileSystem')
 const { SETTINGS_FILE } = require('./constants')
 const path = require('path')
-const { initialize } = require('./utils')
+const { initialize, cancelInit } = require('./utils')
 
 ipcMain.on('request-app-settings', async (event) => {
   console.log('Received settings request')
@@ -38,6 +38,17 @@ ipcMain.on('request-library-data', async (event) => {
 ipcMain.on('request-library-init', async (event) => {
   try {
     await initialize()
+  } catch (e) {
+    console.log(e)
+    event.returnValue = e
+  }
+})
+
+ipcMain.on('request-init-cancel', (event) => {
+  console.log('Recieved cancel request')
+
+  try {
+    cancelInit()
   } catch (e) {
     console.log(e)
     event.returnValue = e
