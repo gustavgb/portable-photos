@@ -1,7 +1,6 @@
 import React from 'react'
-import { createStore, applyMiddleware } from 'redux'
+import { createStore } from 'redux'
 import { Provider } from 'react-redux'
-import logger from 'redux-logger'
 
 const defaultState = {
   library: {
@@ -58,9 +57,8 @@ const reducer = (state = { ...defaultState }, action) => {
   }
 }
 
-const store = createStore(
-  reducer,
-  applyMiddleware(logger)
+const store = window.store = createStore(
+  reducer
 )
 export const StoreProvider = ({ children }) => (
   <Provider store={store}>

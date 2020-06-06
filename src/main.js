@@ -5,6 +5,7 @@ const path = require('path')
 const utils = require('./backend/utils')
 const { setMainWindow } = require('./backend/mainWindowState')
 require('./backend/ipcMain')
+require('./backend/server')
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) { // eslint-disable-line global-require
@@ -63,6 +64,8 @@ const createWindow = () => {
   ])
 
   Menu.setApplicationMenu(menu)
+
+  utils.initialize()
 }
 
 // This method will be called when Electron has finished

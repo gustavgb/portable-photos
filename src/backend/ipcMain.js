@@ -37,10 +37,7 @@ ipcMain.on('request-library-data', async (event) => {
 
 ipcMain.on('request-library-init', async (event) => {
   try {
-    const libraryData = await initialize()
-
-    event.reply('send-library-data', libraryData)
-    event.returnValue = libraryData
+    await initialize()
   } catch (e) {
     console.log(e)
     event.returnValue = e

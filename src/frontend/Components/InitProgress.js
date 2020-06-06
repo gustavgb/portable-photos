@@ -40,8 +40,6 @@ const InitProgress = () => {
     }
   }, [])
 
-  console.log(isInitializing)
-
   return (
     <InitProgressBox show={isInitializing}>
       {progress || ''}
