@@ -1,10 +1,25 @@
-const { dialog, nativeImage, BrowserWindow: window } = require('electron')
+const { dialog, nativeImage } = require('electron')
 const fs = require('./fileSystem')
 const { APP_DIR, SETTINGS_FILE, pattern } = require('./constants')
 const path = require('path')
 const { getMainWindow } = require('./mainWindowState')
 
+const createIpcSender = () => {
+  let focusedWindow = getMainWindow()
+
+  return (name, arg) => {
+    if (!focusedWindow) {
+      focusedWindow = getMainWindow()
+    }
+
+    if (focusedWindow) {
+      focusedWindow.webContents.send(name, arg)
+    }
+  }
+}
+
 exports.setLibraryLocation = async () => {
+  const sender = createIpcSender()
   try {
     const result = await dialog.showOpenDialog({ properties: ['openDirectory'] })
 
@@ -20,8 +35,7 @@ exports.setLibraryLocation = async () => {
 
     await fs.writeFile(SETTINGS_FILE, JSON.stringify(settings), 'utf8')
 
-    const focusedWindow = window.getFocusedWindow()
-    focusedWindow.webContents.send('send-app-settings', settings)
+    sender('send-app-settings', settings)
   } catch (e) {
     console.log(e)
   }
@@ -117,20 +131,6 @@ const promiseSerial = funcs =>
   funcs.reduce((promise, func) =>
     promise.then(result => func().then(Array.prototype.concat.bind(result))),
   Promise.resolve([]))
-
-const createIpcSender = () => {
-  let focusedWindow = getMainWindow()
-
-  return (name, arg) => {
-    if (!focusedWindow) {
-      focusedWindow = getMainWindow()
-    }
-
-    if (focusedWindow) {
-      focusedWindow.webContents.send(name, arg)
-    }
-  }
-}
 
 exports.initialize = async () => {
   const sender = createIpcSender()
