@@ -15,12 +15,12 @@ const reducer = (state, action) => {
         isSelected: false
       }))
     case 'TOGGLE_SELECTED':
-      return state.map((image, index) => index === action.index ? ({
+      return state.map((image) => image.index === action.index ? ({
         ...image,
         isSelected: !image.isSelected
       }) : image)
     case 'TOGGLE_MULTIPLE':
-      return state.map((image, index) => (index <= action.to && index >= action.from) ? ({
+      return state.map((image) => (image.index <= action.to && image.index >= action.from) ? ({
         ...image,
         isSelected: true
       }) : image)
@@ -61,11 +61,12 @@ const Gallery = ({ photos: libraryPhotos }) => {
   const [cellHeight, setCellHeight] = useState(0)
   const [firstRow, setFirstRow] = useState(0)
   const [visibleCells, setVisibleCells] = useState(0)
+  const [updatedTs, setUpdatedTs] = useState(0)
   const outerRef = useRef(null)
 
   const visibleImages = useMemo(
     () => images.slice(firstRow * columns, firstRow * columns + visibleCells),
-    [firstRow, columns, visibleCells, images.length]
+    [firstRow, columns, visibleCells, images.length, updatedTs]
   )
 
   const selectMultiple = Boolean(keys.Shift) && lastSelected !== -1
@@ -105,7 +106,7 @@ const Gallery = ({ photos: libraryPhotos }) => {
 
     window.addEventListener('scroll', onScroll)
     return () => window.removeEventListener('scroll', onScroll)
-  }, [cellHeight, columns])
+  }, [cellHeight, columns, window.scrollY, window.innerHeight])
 
   const handleSelect = (index, prevSelected) => {
     if (!selectMultiple) {
@@ -118,24 +119,23 @@ const Gallery = ({ photos: libraryPhotos }) => {
     } else {
       dispatch({ type: 'TOGGLE_MULTIPLE', from: selectStart, to: selectEnd })
     }
+    setUpdatedTs(Date.now())
   }
-
-  console.log(firstRow, visibleCells, visibleImages.length)
 
   return (
     <Container ref={outerRef} height={cellHeight * rows}>
       <Grid offset={firstRow * cellHeight}>
-        {visibleImages.map((image, index) => (
+        {visibleImages.map((image) => (
           <Photo
             key={image.thumbnail}
             src={image.thumbnail}
-            onSelect={() => handleSelect(index, image.isSelected)}
-            onMouseEnter={() => setHover(index)}
+            onSelect={() => handleSelect(image.index, image.isSelected)}
+            onMouseEnter={() => setHover(image.index)}
             onMouseLeave={() => setHover(-1)}
             isSelected={image.isSelected}
             isHovered={(
-              selectStart <= index &&
-              selectEnd >= index
+              selectStart <= image.index &&
+              selectEnd >= image.index
             )}
           />
         ))}
