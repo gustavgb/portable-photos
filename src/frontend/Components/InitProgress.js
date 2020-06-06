@@ -15,6 +15,9 @@ const InitProgressBox = styled.div`
   color: ${props => props.theme.palette.common.white};
   transition: all 0.25s ease-out;
   padding: 1rem 1.2rem;
+  height: ${props => props.theme.mixins.initProgress.height}px;
+  display: flex;
+  align-items: center;
 `
 
 const InitProgress = () => {

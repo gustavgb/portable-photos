@@ -6,6 +6,7 @@ import { setSettings, setLibraryData } from './actions'
 import ThemeProvider from './theme'
 import InitProgress from './Components/InitProgress'
 import Gallery from './Components/Gallery'
+import InitScreen from './Components/InitScreen'
 
 const Root = styled.div`
 `
@@ -14,6 +15,7 @@ const App = () => {
   const dispatch = useDispatch()
   const libraryData = useSelector(state => state.library.data)
   const libraryStatus = useSelector(state => state.library.status)
+  const isInitializing = useSelector(state => state.init.isInitializing)
 
   useEffect(() => {
     console.log('Init')
@@ -58,7 +60,9 @@ const App = () => {
     <Root>
       {libraryStatus === 'loaded' && (
         <>
-          <Gallery photos={libraryData ? libraryData.photos : []} />
+          {isInitializing && !libraryData
+            ? <InitScreen />
+            : <Gallery photos={libraryData ? libraryData.photos : []} />}
           <InitProgress />
         </>
       )}

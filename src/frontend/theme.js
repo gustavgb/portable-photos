@@ -3,7 +3,8 @@ import { ThemeProvider as StyledThemeProvider } from 'styled-components'
 
 const theme = {
   fontSize: {
-    body: '1.2rem'
+    body: '1.2rem',
+    header: '1.6rem'
   },
   palette: {
     dark: {
@@ -12,6 +13,11 @@ const theme = {
     common: {
       white: '#fff',
       black: '#000'
+    }
+  },
+  mixins: {
+    initProgress: {
+      height: 40
     }
   }
 }
