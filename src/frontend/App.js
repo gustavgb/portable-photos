@@ -19,12 +19,12 @@ const App = () => {
   useEffect(() => {
     console.log('Init')
 
-    window.ipcListen('send-app-settings', (event, settings) => {
+    const closeSettingsListener = window.ipcListen('send-app-settings', (event, settings) => {
       console.log(settings)
 
       dispatch(setSettings(settings))
     })
-    window.ipcListen('send-library-data', async (event, path) => {
+    const closeLibraryListener = window.ipcListen('send-library-data', async (event, path) => {
       console.log('Library data can be found at ' + path)
 
       const libraryData = await window.readLibraryData(path)
@@ -32,6 +32,22 @@ const App = () => {
       dispatch(setLibraryData(libraryData))
     })
     window.ipcSend('request-library-data')
+
+    const handleKeyUp = (e) => {
+      dispatch({ type: 'KEY_UP', key: e.key })
+    }
+    const handleKeyDown = (e) => {
+      dispatch({ type: 'KEY_DOWN', key: e.key })
+    }
+    window.addEventListener('keyup', handleKeyUp)
+    window.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      closeSettingsListener()
+      closeLibraryListener()
+      window.removeEventListener('keyup', handleKeyUp)
+      window.removeEventListener('keydown', handleKeyDown)
+    }
   }, [])
 
   return (

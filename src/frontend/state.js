@@ -14,7 +14,8 @@ const defaultState = {
   init: {
     isInitializing: false,
     progress: null
-  }
+  },
+  keys: {}
 }
 
 const reducer = (state = { ...defaultState }, action) => {
@@ -50,6 +51,22 @@ const reducer = (state = { ...defaultState }, action) => {
         init: {
           ...state.init,
           isInitializing: action.value
+        }
+      }
+    case 'KEY_DOWN':
+      return {
+        ...state,
+        keys: {
+          ...state.keys,
+          [action.key]: true
+        }
+      }
+    case 'KEY_UP':
+      return {
+        ...state,
+        keys: {
+          ...state.keys,
+          [action.key]: false
         }
       }
     default:

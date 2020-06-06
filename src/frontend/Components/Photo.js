@@ -53,10 +53,30 @@ const SelectorBox = styled.div`
   }
 `
 
-const Photo = ({ src, isSelected, onSelect }) => {
+const Photo = ({
+  src,
+  isSelected,
+  onSelect,
+  onMouseEnter,
+  onMouseLeave,
+  isHovered
+}) => {
+  const handleClick = () => {
+    if (isHovered) {
+      onSelect()
+    }
+  }
+
   return (
-    <PhotoOuter>
-      <PhotoInner src={src} isSelected={isSelected} />
+    <PhotoOuter
+      onMouseOver={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+      onClick={handleClick}
+    >
+      <PhotoInner
+        src={src}
+        isSelected={isSelected || isHovered}
+      />
       <SelectorBox onClick={onSelect} isSelected={isSelected}>
         <Selector isSelected={isSelected} />
       </SelectorBox>

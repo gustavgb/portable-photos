@@ -1,6 +1,7 @@
-import React, { useReducer, useEffect } from 'react'
+import React, { useReducer, useEffect, useRef, useState } from 'react'
 import styled from 'styled-components'
 import Photo from './Photo'
+import { useSelector } from 'react-redux'
 
 const reducer = (state, action) => {
   switch (action.type) {
@@ -17,6 +18,11 @@ const reducer = (state, action) => {
         ...image,
         isSelected: !image.isSelected
       }) : image)
+    case 'TOGGLE_MULTIPLE':
+      return state.map((image, index) => (index <= action.to && index >= action.from) ? ({
+        ...image,
+        isSelected: true
+      }) : image)
     default:
       return state
   }
@@ -30,13 +36,28 @@ const Container = styled.div`
 
 const Gallery = ({ photos: libraryPhotos }) => {
   const [images, dispatch] = useReducer(reducer, [])
+  const keys = useSelector(state => state.keys)
+  const [lastSelected, setLastSelected] = useState(-1)
+  const [hovered, setHover] = useState(-1)
+  const selectMultiple = Boolean(keys.Shift)
+  const selectStart = selectMultiple ? Math.min(hovered, lastSelected) : -1
+  const selectEnd = selectMultiple ? Math.max(hovered, lastSelected) : -1
 
   useEffect(() => {
     dispatch({ type: 'SET_IMAGES', images: libraryPhotos })
   }, [libraryPhotos.length])
 
-  const handleSelect = (index) => {
-    dispatch({ type: 'TOGGLE_SELECTED', index })
+  const handleSelect = (index, prevSelected) => {
+    if (!selectMultiple) {
+      dispatch({ type: 'TOGGLE_SELECTED', index })
+      if (prevSelected) {
+        setLastSelected(-1)
+      } else {
+        setLastSelected(index)
+      }
+    } else {
+      dispatch({ type: 'TOGGLE_MULTIPLE', from: selectStart, to: selectEnd })
+    }
   }
 
   return (
@@ -45,8 +66,14 @@ const Gallery = ({ photos: libraryPhotos }) => {
         <Photo
           key={image.thumbnail}
           src={image.thumbnail}
-          onSelect={() => handleSelect(index)}
+          onSelect={() => handleSelect(index, image.isSelected)}
+          onMouseEnter={() => setHover(index)}
+          onMouseLeave={() => setHover(-1)}
           isSelected={image.isSelected}
+          isHovered={(
+            selectStart <= index &&
+            selectEnd >= index
+          )}
         />
       ))}
     </Container>
