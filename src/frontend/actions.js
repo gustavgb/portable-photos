@@ -32,3 +32,5 @@ export const toggleSelected = (index) => ({ type: 'TOGGLE_SELECTED', index })
 export const toggleMultiple = (selectStart, selectEnd) => ({ type: 'TOGGLE_MULTIPLE', from: selectStart, to: selectEnd })
 
 export const clearSelected = () => ({ type: 'CLEAR_SELECTED' })
+
+export const setCurrentAlbum = (id) => ({ type: 'VIEW_SET_CURRENT_ALBUM', id })

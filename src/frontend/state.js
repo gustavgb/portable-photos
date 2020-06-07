@@ -6,7 +6,8 @@ const defaultState = {
   library: {
     status: 'ready',
     albums: [],
-    lastUpdate: 0
+    lastUpdate: 0,
+    currentAlbum: 'all'
   },
   settings: {
     status: 'ready',
@@ -18,9 +19,6 @@ const defaultState = {
   },
   lightbox: {
     selected: -1
-  },
-  view: {
-    currentAlbum: 'all'
   },
   keys: {}
 }
@@ -43,6 +41,7 @@ const reducer = (state = { ...defaultState }, action) => {
       return {
         ...state,
         library: {
+          ...state.library,
           status: 'loaded',
           albums: action.libraryData.albums.map(album => {
             return {
@@ -68,10 +67,10 @@ const reducer = (state = { ...defaultState }, action) => {
           ...state.library,
           lastUpdate: Date.now(),
           albums: state.library.albums.map(album =>
-            album.id === state.view.currentAlbum
+            album.id === state.library.currentAlbum
               ? ({
                 ...album,
-                media: state.library.media.map((image) => image.index === action.index ? ({
+                media: album.media.map((image) => image.index === action.index ? ({
                   ...image,
                   isSelected: !image.isSelected
                 }) : image)
@@ -87,10 +86,10 @@ const reducer = (state = { ...defaultState }, action) => {
           ...state.library,
           lastUpdate: Date.now(),
           albums: state.library.albums.map(album =>
-            album.id === state.view.currentAlbum
+            album.id === state.library.currentAlbum
               ? ({
                 ...album,
-                media: state.library.media.map((image) => (image.index <= action.to && image.index >= action.from) ? ({
+                media: album.media.map((image) => (image.index <= action.to && image.index >= action.from) ? ({
                   ...image,
                   isSelected: true
                 }) : image)
@@ -106,10 +105,10 @@ const reducer = (state = { ...defaultState }, action) => {
           ...state.library,
           lastUpdate: Date.now(),
           albums: state.library.albums.map(album =>
-            album.id === state.view.currentAlbum
+            album.id === state.library.currentAlbum
               ? ({
                 ...album,
-                media: state.library.media.map(item => ({
+                media: album.media.map(item => ({
                   ...item,
                   isSelected: false
                 }))
@@ -121,11 +120,7 @@ const reducer = (state = { ...defaultState }, action) => {
     case 'RESET_LIBRARY_DATA':
       return {
         ...state,
-        library: defaultState.library,
-        view: {
-          ...state.view,
-          currentAlbum: 'all'
-        }
+        library: defaultState.library
       }
     case 'SET_STATUS':
       return {
@@ -167,6 +162,15 @@ const reducer = (state = { ...defaultState }, action) => {
         lightbox: {
           ...state.lightbox,
           selected: state.lightbox.selected + action.movement
+        }
+      }
+    case 'VIEW_SET_CURRENT_ALBUM':
+      return {
+        ...state,
+        library: {
+          ...state.library,
+          lastUpdate: Date.now(),
+          currentAlbum: action.id
         }
       }
     default:

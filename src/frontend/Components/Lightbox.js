@@ -28,7 +28,7 @@ const Video = styled.video.attrs(props => ({
 
 const Lightbox = () => {
   const dispatch = useDispatch()
-  const album = useSelector(state => state.library.albums.find(album => album.id === state.view.currentAlbum) || {})
+  const album = useSelector(state => state.library.albums.find(album => album.id === state.library.currentAlbum) || {})
   const media = album.media || []
   const selectedIndex = useSelector(state => state.lightbox.selected)
   const selectedMedia = media[selectedIndex]

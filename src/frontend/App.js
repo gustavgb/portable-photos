@@ -8,8 +8,11 @@ import Gallery from './Components/Gallery'
 import Lightbox from './Components/Lightbox'
 import Selection from './Components/Selection'
 import StatusBar from './Components/StatusBar'
+import Sidebar from './Components/Sidebar'
 
-const Root = styled.div`
+const Body = styled.div`
+  display: grid;
+  grid-template-columns: min-content 1fr;
 `
 
 const App = () => {
@@ -63,12 +66,15 @@ const App = () => {
   }, [])
 
   return (
-    <Root>
+    <main>
       <Selection />
-      <Gallery />
+      <Body>
+        <Sidebar />
+        <Gallery />
+      </Body>
       <Lightbox />
       <StatusBar />
-    </Root>
+    </main>
   )
 }
 
