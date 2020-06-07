@@ -35,6 +35,8 @@ exports.setLibraryLocation = async () => {
 
     await fs.writeFile(SETTINGS_FILE, JSON.stringify(settings), 'utf8')
 
+    exports.cancelInit()
+
     sender('send-app-settings', settings)
   } catch (e) {
     console.log(e)
@@ -227,6 +229,11 @@ exports.initialize = async () => {
 
     const validMetaData = await promiseSerial(readMetaFuncs)
 
+    if (cancelledInits[id]) {
+      sender('init-end')
+      return
+    }
+
     await createAndWriteIndex(validMetaData)
 
     sender('init-progress', {
@@ -240,6 +247,11 @@ exports.initialize = async () => {
     }
 
     console.log('Found ' + photosWithMissing.length + ' photos without valid metadata')
+
+    if (cancelledInits[id]) {
+      sender('init-end')
+      return
+    }
 
     const createMetaFuncs = photosWithMissing.map(
       (photo, index) => () => {
@@ -261,11 +273,19 @@ exports.initialize = async () => {
 
     await promiseSerial(createMetaFuncs)
 
-    metadataFiles = await fs.glob(`${settings.library}/.library/metadata/*`)
+    if (cancelledInits[id]) {
+      sender('init-end')
+      return
+    }
+
+    metadataFiles = await fs.glob(`${settings.library}/.library/metadata/*.json`)
 
     const indexMetaFuncs = metadataFiles.map(
-      (meta, index) => () =>
-        readPhotoMeta(meta)
+      (meta, index) => () => {
+        if (cancelledInits[id]) {
+          return Promise.resolve()
+        }
+        return readPhotoMeta(meta)
           .then(res => {
             sender('init-progress', {
               status: 'Indexing',
@@ -274,7 +294,13 @@ exports.initialize = async () => {
 
             return res
           })
+      }
     )
+
+    if (cancelledInits[id]) {
+      sender('init-end')
+      return
+    }
 
     const photoIndex = await promiseSerial(indexMetaFuncs)
 
@@ -289,5 +315,6 @@ exports.initialize = async () => {
 }
 
 exports.cancelInit = () => {
+  console.log('Cancelling init #' + cancelledInits.counter)
   cancelledInits[cancelledInits.counter] = true
 }

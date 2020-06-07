@@ -2,7 +2,7 @@ import React, { useEffect } from 'react'
 import styled from 'styled-components'
 import { StoreProvider } from './state'
 import { useSelector, useDispatch } from 'react-redux'
-import { setSettings, setLibraryData } from './actions'
+import { setSettings, setLibraryData, resetLibraryData } from './actions'
 import ThemeProvider from './theme'
 import InitProgress from './Components/InitProgress'
 import Gallery from './Components/Gallery'
@@ -13,16 +13,23 @@ const Root = styled.div`
 
 const App = () => {
   const dispatch = useDispatch()
+  const settings = useSelector(state => state.settings)
   const libraryData = useSelector(state => state.library.data)
   const isInitializing = useSelector(state => state.init.isInitializing)
 
   useEffect(() => {
-    console.log('Init')
+    const closeSettingsListener = window.ipcListen('send-app-settings', (event, nextSettings) => {
+      console.log(nextSettings)
 
-    const closeSettingsListener = window.ipcListen('send-app-settings', (event, settings) => {
-      console.log(settings)
+      dispatch(setSettings(nextSettings))
 
-      dispatch(setSettings(settings))
+      if (settings.library !== nextSettings.library) {
+        dispatch(resetLibraryData())
+
+        if (window.confirm('Scan library now?')) {
+          window.ipcSend('request-library-init')
+        }
+      }
     })
     const closeLibraryListener = window.ipcListen('send-library-data', async (event, path) => {
       console.log('Library data can be found at ' + path)

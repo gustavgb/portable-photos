@@ -36,6 +36,11 @@ const reducer = (state = { ...defaultState }, action) => {
           data: action.libraryData
         }
       }
+    case 'RESET_LIBRARY_DATA':
+      return {
+        ...state,
+        library: defaultState.library
+      }
     case 'SET_INIT_PROGRESS':
       return {
         ...state,
