@@ -5,7 +5,8 @@ import { Provider } from 'react-redux'
 const defaultState = {
   library: {
     status: 'ready',
-    data: null
+    data: null,
+    lastUpdate: 0
   },
   settings: {
     status: 'ready',
@@ -33,7 +34,8 @@ const reducer = (state = { ...defaultState }, action) => {
         ...state,
         library: {
           status: 'loaded',
-          data: action.libraryData
+          data: action.libraryData,
+          lastUpdate: Date.now()
         }
       }
     case 'RESET_LIBRARY_DATA':

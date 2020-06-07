@@ -54,7 +54,9 @@ const Grid = styled.div.attrs(props => ({
   padding: 1rem;
 `
 
-const Gallery = ({ media: libraryMedia }) => {
+const Gallery = () => {
+  const libraryMedia = useSelector(state => state.library.data ? state.library.data.media : [])
+  const libraryLastUpdate = useSelector(state => state.library.lastUpdate)
   const [images, dispatch] = useReducer(reducer, [])
   const keys = useSelector(state => state.keys)
   const [lastSelected, setLastSelected] = useState(-1)
@@ -78,7 +80,7 @@ const Gallery = ({ media: libraryMedia }) => {
 
   useEffect(() => {
     dispatch({ type: 'SET_IMAGES', images: libraryMedia })
-  }, [libraryMedia.length])
+  }, [libraryLastUpdate])
 
   useEffect(() => {
     const onResize = () => {
