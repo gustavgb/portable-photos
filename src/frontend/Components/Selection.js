@@ -77,7 +77,8 @@ const Search = styled.input`
 
 const Selection = () => {
   const dispatch = useDispatch()
-  const media = useSelector(state => state.library.media || [])
+  const album = useSelector(state => state.library.albums.find(album => album.id === state.view.currentAlbum) || {})
+  const media = album.media || []
   const libraryLastUpdate = useSelector(state => state.library.lastUpdate)
   const numSelected = useMemo(() => media.filter(media => media.isSelected).length, [libraryLastUpdate])
   const [showAlbums, setShowAlbums] = useState(false)

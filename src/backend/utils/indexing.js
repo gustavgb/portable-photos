@@ -38,9 +38,11 @@ exports.createIndex = async (settings, media) => {
       media = await getMediaFiles(settings)
     }
     const metadataFiles = await fs.glob(`${settings.libraryFolder}/metadata/*`)
+    const albums = await fs.glob(`${settings.libraryFolder}/albums/*`)
 
-    console.log('Found ' + media.length + ' media')
+    console.log('Found ' + media.length + ' media files')
     console.log('Found ' + metadataFiles.length + ' meta files')
+    console.log('Found ' + albums.length + ' albums')
 
     const readMetaFuncs = metadataFiles.map(
       (meta, index) => () => {
@@ -69,11 +71,47 @@ exports.createIndex = async (settings, media) => {
       return 0
     })
 
+    const readAlbumFuncs = albums.map(
+      (album, index) => () => {
+        const func = async () => {
+          const data = await fs.readJson(album)
+
+          const media = filteredMeta.filter(item => data.paths.indexOf(item.path) > -1)
+
+          return {
+            name: data.name,
+            id: data.id,
+            media
+          }
+        }
+
+        return func()
+          .then(res => {
+            sender('init-progress', {
+              status: 'Mapping albums',
+              progress: index / albums.length
+            })
+            return res
+          })
+      }
+    )
+
+    const albumIndexes = await promiseSerial(readAlbumFuncs)
+
     const libraryData = {
-      media: filteredMeta
+      albums: [
+        {
+          name: 'All',
+          id: 'all',
+          media: filteredMeta
+        }
+      ].concat(albumIndexes)
     }
 
     await fs.writeFile(libraryDataPath, JSON.stringify(libraryData), 'utf8')
+
+    console.log('Finished indexing')
+
     sender('send-library-data', libraryDataPath)
 
     sender('progress-finished')

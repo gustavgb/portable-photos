@@ -5,7 +5,7 @@ import { Provider } from 'react-redux'
 const defaultState = {
   library: {
     status: 'ready',
-    media: null,
+    albums: [],
     lastUpdate: 0
   },
   settings: {
@@ -18,6 +18,9 @@ const defaultState = {
   },
   lightbox: {
     selected: -1
+  },
+  view: {
+    currentAlbum: 'all'
   },
   keys: {}
 }
@@ -41,15 +44,20 @@ const reducer = (state = { ...defaultState }, action) => {
         ...state,
         library: {
           status: 'loaded',
-          media: action.libraryData.media.map((image, index) => ({
-            ...image,
-            index,
-            originalPath: image.path,
-            originalThumbPath: image.thumbPath,
-            path: `http://localhost:3001${encodePath(image.path)}`,
-            thumbPath: `http://localhost:3001${encodePath(image.thumbPath)}`,
-            isSelected: false
-          })),
+          albums: action.libraryData.albums.map(album => {
+            return {
+              ...album,
+              media: album.media.map((image, index) => ({
+                ...image,
+                index,
+                originalPath: image.path,
+                originalThumbPath: image.thumbPath,
+                path: `http://localhost:3001${encodePath(image.path)}`,
+                thumbPath: `http://localhost:3001${encodePath(image.thumbPath)}`,
+                isSelected: false
+              }))
+            }
+          }),
           lastUpdate: Date.now()
         }
       }
@@ -59,10 +67,17 @@ const reducer = (state = { ...defaultState }, action) => {
         library: {
           ...state.library,
           lastUpdate: Date.now(),
-          media: state.library.media.map((image) => image.index === action.index ? ({
-            ...image,
-            isSelected: !image.isSelected
-          }) : image)
+          albums: state.library.albums.map(album =>
+            album.id === state.view.currentAlbum
+              ? ({
+                ...album,
+                media: state.library.media.map((image) => image.index === action.index ? ({
+                  ...image,
+                  isSelected: !image.isSelected
+                }) : image)
+              })
+              : album
+          )
         }
       }
     case 'TOGGLE_MULTIPLE':
@@ -71,10 +86,17 @@ const reducer = (state = { ...defaultState }, action) => {
         library: {
           ...state.library,
           lastUpdate: Date.now(),
-          media: state.library.media.map((image) => (image.index <= action.to && image.index >= action.from) ? ({
-            ...image,
-            isSelected: true
-          }) : image)
+          albums: state.library.albums.map(album =>
+            album.id === state.view.currentAlbum
+              ? ({
+                ...album,
+                media: state.library.media.map((image) => (image.index <= action.to && image.index >= action.from) ? ({
+                  ...image,
+                  isSelected: true
+                }) : image)
+              })
+              : album
+          )
         }
       }
     case 'CLEAR_SELECTED':
@@ -83,16 +105,27 @@ const reducer = (state = { ...defaultState }, action) => {
         library: {
           ...state.library,
           lastUpdate: Date.now(),
-          media: state.library.media.map(item => ({
-            ...item,
-            isSelected: false
-          }))
+          albums: state.library.albums.map(album =>
+            album.id === state.view.currentAlbum
+              ? ({
+                ...album,
+                media: state.library.media.map(item => ({
+                  ...item,
+                  isSelected: false
+                }))
+              })
+              : album
+          )
         }
       }
     case 'RESET_LIBRARY_DATA':
       return {
         ...state,
-        library: defaultState.library
+        library: defaultState.library,
+        view: {
+          ...state.view,
+          currentAlbum: 'all'
+        }
       }
     case 'SET_INIT_PROGRESS':
       return {

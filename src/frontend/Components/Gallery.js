@@ -28,7 +28,8 @@ const Grid = styled.div.attrs(props => ({
 
 const Gallery = () => {
   const dispatch = useDispatch()
-  const media = useSelector(state => state.library.media || [])
+  const album = useSelector(state => state.library.albums.find(album => album.id === state.view.currentAlbum) || {})
+  const media = album.media || []
   const libraryLastUpdate = useSelector(state => state.library.lastUpdate)
   const keys = useSelector(state => state.keys)
   const [lastSelected, setLastSelected] = useState(-1)

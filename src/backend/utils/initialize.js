@@ -120,6 +120,8 @@ exports.initialize = async () => {
     const media = await getMediaFiles(settings)
     const validMetaData = await createIndex(settings, media)
 
+    console.log('test')
+
     sender('init-progress', {
       status: 'Finding files without metadata',
       progress: 0
