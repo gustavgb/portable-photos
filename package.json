@@ -87,6 +87,7 @@
     "electron-squirrel-startup": "^1.0.0",
     "exif": "^0.6.0",
     "express": "^4.17.1",
+    "fluent-ffmpeg": "^2.1.2",
     "glob": "^7.1.6",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",

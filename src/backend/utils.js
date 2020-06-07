@@ -3,6 +3,7 @@ const fs = require('./fileSystem')
 const { APP_DIR, SETTINGS_FILE, pattern } = require('./constants')
 const path = require('path')
 const { getMainWindow } = require('./mainWindowState')
+const ffmpeg = require('fluent-ffmpeg')
 
 const createIpcSender = () => {
   let focusedWindow = getMainWindow()
@@ -44,25 +45,20 @@ exports.setLibraryLocation = async () => {
   }
 }
 
-const createMetaReader = (settings) => async (metaPath, photos) => {
+const createMetaReader = (settings) => async (metaPath, media) => {
   try {
     const metadata = await fs.readJson(metaPath)
     const hasThumbFile = (metadata && metadata.thumbPath) ? (await fs.exists(metadata.thumbPath)) : false
-    const exists = photos.indexOf(metadata.path)
+    const exists = media.indexOf(metadata.path) > -1
 
     if (
       exists &&
       metadata &&
       hasThumbFile &&
-      metadata.size &&
-      metadata.size.width &&
-      metadata.size.height &&
-      metadata.thumbSize &&
-      metadata.thumbSize.width &&
-      metadata.thumbSize.height &&
       metadata.thumbPath &&
       metadata.path &&
-      metadata.createDate
+      metadata.createDate &&
+      metadata.mediaType
     ) {
       return metadata
     }
@@ -74,12 +70,21 @@ const createMetaReader = (settings) => async (metaPath, photos) => {
   }
 }
 
-const createMetaWriter = (settings) => async (photo) => {
+const createMetaWriter = (settings) => async (media) => {
   try {
     const meta = {
-      path: photo
+      path: media
     }
-    const googleMetaPath = photo + '.json'
+    const isVideo = pattern.VIDEO_REG.test(media)
+    const isPhoto = pattern.PHOTO_REG.test(media)
+
+    if (isVideo && !isPhoto) {
+      meta.mediaType = 'video'
+    } else if (isPhoto && !isVideo) {
+      meta.mediaType = 'photo'
+    }
+
+    const googleMetaPath = media + '.json'
     const hasGoogleMeta = await fs.exists(googleMetaPath)
     if (hasGoogleMeta) {
       const googleMeta = await fs.readJson(googleMetaPath)
@@ -88,8 +93,8 @@ const createMetaWriter = (settings) => async (photo) => {
     }
 
     try {
-      if (pattern.JPG_EXTENSION_REG.test(photo)) {
-        const exifData = await fs.readExif(photo)
+      if (pattern.JPG_EXTENSION_REG.test(media)) {
+        const exifData = await fs.readExif(media)
         let createDateRaw
         if (exifData.exif) {
           createDateRaw = exifData.exif.CreateDate
@@ -103,35 +108,38 @@ const createMetaWriter = (settings) => async (photo) => {
       }
     } catch (e) {}
 
-    const image = nativeImage.createFromPath(photo)
-    const size = image.getSize()
-    const thumb = image.resize({
-      width: 320,
-      height: Math.ceil(size.height / size.width * 320)
-    })
-    const thumbSize = thumb.getSize()
-
-    const fileName = photo.split('/').pop()
-    const thumbPath = path.resolve(settings.libraryFolder, `thumbnails/${fileName}.jpg`)
+    const fileName = media.split('/').pop()
     const metaPath = path.resolve(settings.libraryFolder, `metadata/${fileName}.json`)
+    let thumbPath = path.resolve(settings.libraryFolder, `thumbnails/${fileName}`)
+    if (meta.mediaType === 'photo') {
+      const image = nativeImage.createFromPath(media)
+      const size = image.getSize()
+      const thumb = image.resize({
+        width: 320,
+        height: Math.ceil(size.height / size.width * 320)
+      })
 
-    await fs.writeFile(thumbPath, thumb.toJPEG(50))
+      thumbPath = thumbPath + '.jpg'
 
-    meta.size = {
-      width: size.width,
-      height: size.height
+      await fs.writeFile(thumbPath, thumb.toJPEG(50))
+    } else if (meta.mediaType === 'video') {
+      thumbPath = thumbPath + '.png'
+      await ffmpeg(media)
+        .screenshots({
+          count: 1,
+          filename: path.basename(thumbPath),
+          folder: path.dirname(thumbPath),
+          size: '320x?'
+        })
     }
-    meta.thumbSize = {
-      width: thumbSize.width,
-      height: thumbSize.height
-    }
+
     meta.thumbPath = thumbPath
     meta.metaPath = metaPath
 
     await fs.writeFile(metaPath, JSON.stringify(meta), 'utf8')
   } catch (e) {
     console.log(e)
-    console.log(photo)
+    console.log(media)
   }
 }
 
@@ -174,7 +182,7 @@ exports.initialize = async () => {
       })
 
       const libraryData = {
-        photos: filteredMeta
+        media: filteredMeta
       }
 
       await fs.writeFile(libraryDataPath, JSON.stringify(libraryData), 'utf8')
@@ -197,19 +205,19 @@ exports.initialize = async () => {
     }
 
     sender('init-progress', {
-      status: 'Finding photos',
+      status: 'Finding media',
       progress: 0
     })
 
     const files = await fs.glob(`${settings.library}/**/*`)
-    const photos = files.filter(file =>
+    const media = files.filter(file =>
       !pattern.LIBRARY_FILE_REG.test(file) &&
       pattern.FILE_EXTENSION_REG.test(file) &&
-      pattern.PHOTO_REG.test(file)
+      pattern.MEDIA_REG.test(file)
     )
     let metadataFiles = await fs.glob(`${settings.libraryFolder}/metadata/*`)
 
-    console.log('Found ' + photos.length + ' photos')
+    console.log('Found ' + media.length + ' media')
     console.log('Found ' + metadataFiles.length + ' meta files')
 
     const readMetaFuncs = metadataFiles.map(
@@ -218,7 +226,7 @@ exports.initialize = async () => {
           return Promise.resolve()
         }
 
-        return readPhotoMeta(meta, photos)
+        return readPhotoMeta(meta, media)
           .then(res => {
             sender('init-progress', {
               status: 'Getting metadata',
@@ -244,19 +252,19 @@ exports.initialize = async () => {
       progress: 0
     })
 
-    let photosWithMissing = []
+    let mediaWithMissing = []
     if (!cancelledInits[id]) {
-      photosWithMissing = photos.filter(photo => !validMetaData.find(meta => meta && meta.path === photo))
+      mediaWithMissing = media.filter(photo => !validMetaData.find(meta => meta && meta.path === photo))
     }
 
-    console.log('Found ' + photosWithMissing.length + ' photos without valid metadata')
+    console.log('Found ' + mediaWithMissing.length + ' media without valid metadata')
 
     if (cancelledInits[id]) {
       sender('init-end')
       return
     }
 
-    const createMetaFuncs = photosWithMissing.map(
+    const createMetaFuncs = mediaWithMissing.map(
       (photo, index) => () => {
         if (cancelledInits[id]) {
           return Promise.resolve()
@@ -266,7 +274,7 @@ exports.initialize = async () => {
           .then(res => {
             sender('init-progress', {
               status: 'Creating metadata',
-              progress: index / photosWithMissing.length
+              progress: index / mediaWithMissing.length
             })
 
             return res
@@ -288,7 +296,7 @@ exports.initialize = async () => {
         if (cancelledInits[id]) {
           return Promise.resolve()
         }
-        return readPhotoMeta(meta, photos)
+        return readPhotoMeta(meta, media)
           .then(res => {
             sender('init-progress', {
               status: 'Indexing',

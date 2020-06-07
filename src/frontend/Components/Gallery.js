@@ -1,6 +1,6 @@
 import React, { useReducer, useEffect, useState, useRef, useMemo } from 'react'
 import styled from 'styled-components'
-import Photo from './Photo'
+import Thumbnail from './Thumbnail'
 import { useSelector } from 'react-redux'
 
 const encodePath = (path) => {
@@ -11,11 +11,10 @@ const reducer = (state, action) => {
   switch (action.type) {
     case 'SET_IMAGES':
       return action.images.map((image, index) => ({
+        ...image,
         index,
-        src: `http://localhost:3001${encodePath(image.path)}`,
+        path: `http://localhost:3001${encodePath(image.path)}`,
         thumbnail: `http://localhost:3001${encodePath(image.thumbPath)}`,
-        thumbnailHeight: image.thumbSize.height,
-        thumbnailWidth: image.thumbSize.width,
         isSelected: false
       }))
     case 'TOGGLE_SELECTED':
@@ -55,7 +54,7 @@ const Grid = styled.div.attrs(props => ({
   padding: 1rem;
 `
 
-const Gallery = ({ photos: libraryPhotos }) => {
+const Gallery = ({ media: libraryMedia }) => {
   const [images, dispatch] = useReducer(reducer, [])
   const keys = useSelector(state => state.keys)
   const [lastSelected, setLastSelected] = useState(-1)
@@ -78,8 +77,8 @@ const Gallery = ({ photos: libraryPhotos }) => {
   const selectEnd = selectMultiple ? Math.max(hovered, lastSelected) : -1
 
   useEffect(() => {
-    dispatch({ type: 'SET_IMAGES', images: libraryPhotos })
-  }, [libraryPhotos.length])
+    dispatch({ type: 'SET_IMAGES', images: libraryMedia })
+  }, [libraryMedia.length])
 
   useEffect(() => {
     const onResize = () => {
@@ -130,9 +129,10 @@ const Gallery = ({ photos: libraryPhotos }) => {
     <Container ref={outerRef} height={cellHeight * rows}>
       <Grid offset={firstRow * cellHeight}>
         {visibleImages.map((image) => (
-          <Photo
+          <Thumbnail
             key={image.thumbnail}
             src={image.thumbnail}
+            isVideo={image.mediaType === 'video'}
             onSelect={() => handleSelect(image.index, image.isSelected)}
             onMouseEnter={() => setHover(image.index)}
             onMouseLeave={() => setHover(-1)}

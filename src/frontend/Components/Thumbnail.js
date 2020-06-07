@@ -2,6 +2,7 @@ import React from 'react'
 import styled from 'styled-components'
 import circle from '../assets/circle.svg'
 import circleChecked from '../assets/check-circle.svg'
+import film from '../assets/film.svg'
 
 const PhotoOuter = styled.div`
   height: 0;
@@ -53,13 +54,26 @@ const SelectorBox = styled.div`
   }
 `
 
+const VideoIcon = styled.div`
+  position: absolute;
+  right: 1.5rem;
+  top: 1.5rem;
+  width: 1.5rem;
+  height: 1.5rem;
+  background: url(${film}), linear-gradient(#fff, #fff);
+  background-position: center;
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+`
+
 const Photo = ({
   src,
   isSelected,
   onSelect,
   onMouseEnter,
   onMouseLeave,
-  isHovered
+  isHovered,
+  isVideo
 }) => {
   const handleClick = () => {
     if (isHovered) {
@@ -80,6 +94,7 @@ const Photo = ({
       <SelectorBox onClick={onSelect} isSelected={isSelected}>
         <Selector isSelected={isSelected} />
       </SelectorBox>
+      {isVideo && <VideoIcon />}
     </PhotoOuter>
   )
 }

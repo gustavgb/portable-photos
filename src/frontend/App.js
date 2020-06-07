@@ -67,7 +67,7 @@ const App = () => {
     <Root>
       {isInitializing && !libraryData
         ? <InitScreen />
-        : <Gallery photos={libraryData ? libraryData.photos : []} />}
+        : <Gallery media={libraryData ? libraryData.media : []} />}
       <InitProgress />
     </Root>
   )
