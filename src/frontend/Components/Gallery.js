@@ -102,12 +102,11 @@ const Gallery = () => {
       <Grid offset={firstRow * cellHeight}>
         {visibleImages.map((image) => (
           <Thumbnail
-            key={image.thumbnail}
-            src={image.thumbnail}
+            key={image.thumbPath}
+            src={image.thumbPath}
             isVideo={image.mediaType === 'video'}
             onSelect={() => handleSelect(image.index, image.isSelected)}
             onMouseEnter={() => setHover(image.index)}
-            onMouseLeave={() => setHover(-1)}
             isSelected={image.isSelected}
             isHovered={(
               selectStart <= image.index &&

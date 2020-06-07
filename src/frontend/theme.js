@@ -3,8 +3,9 @@ import { ThemeProvider as StyledThemeProvider } from 'styled-components'
 
 const theme = {
   fontSize: {
-    body: '1.2rem',
-    header: '1.6rem'
+    small: '1.2rem',
+    body: '1.8rem',
+    header: '2.2rem'
   },
   palette: {
     dark: {
@@ -18,6 +19,9 @@ const theme = {
   mixins: {
     initProgress: {
       height: 40
+    },
+    selectionBar: {
+      height: 60
     }
   }
 }

@@ -44,8 +44,10 @@ const reducer = (state = { ...defaultState }, action) => {
           media: action.libraryData.media.map((image, index) => ({
             ...image,
             index,
+            originalPath: image.path,
+            originalThumbPath: image.thumbPath,
             path: `http://localhost:3001${encodePath(image.path)}`,
-            thumbnail: `http://localhost:3001${encodePath(image.thumbPath)}`,
+            thumbPath: `http://localhost:3001${encodePath(image.thumbPath)}`,
             isSelected: false
           })),
           lastUpdate: Date.now()
@@ -73,6 +75,18 @@ const reducer = (state = { ...defaultState }, action) => {
             ...image,
             isSelected: true
           }) : image)
+        }
+      }
+    case 'CLEAR_SELECTED':
+      return {
+        ...state,
+        library: {
+          ...state.library,
+          lastUpdate: Date.now(),
+          media: state.library.media.map(item => ({
+            ...item,
+            isSelected: false
+          }))
         }
       }
     case 'RESET_LIBRARY_DATA':

@@ -8,6 +8,7 @@ import InitProgress from './Components/InitProgress'
 import Gallery from './Components/Gallery'
 import InitScreen from './Components/InitScreen'
 import Lightbox from './Components/Lightbox'
+import Selection from './Components/Selection'
 
 const Root = styled.div`
 `
@@ -70,6 +71,7 @@ const App = () => {
         ? <InitScreen />
         : (
           <>
+            <Selection />
             <Gallery />
             <Lightbox />
           </>

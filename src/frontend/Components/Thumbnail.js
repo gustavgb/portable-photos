@@ -4,13 +4,6 @@ import circle from '../assets/circle.svg'
 import circleChecked from '../assets/check-circle.svg'
 import film from '../assets/film.svg'
 
-const PhotoOuter = styled.div`
-  height: 0;
-  padding-bottom: 100%;
-  position: relative;
-  cursor: ${props => props.clickable ? 'pointer' : 'default'};
-`
-
 const PhotoInner = styled.div.attrs(props => ({
   style: {
     backgroundImage: `url(${props.src})`,
@@ -44,14 +37,25 @@ const SelectorBox = styled.div`
   width: 3rem;
   height: 3rem;
   padding: 0.75rem;
-  opacity: ${props => props.isSelected ? 1 : 0.5};
+  opacity: ${props => props.isSelected ? '1 !important' : 0};
   background: transparent;
   transition: all .1s linear;
 
   &:hover {
-    opacity: 1;
+    opacity: 1 !important;
     background-color: rgba(255, 255, 255, 0.2);
     border-radius: 50%;
+  }
+`
+
+const PhotoOuter = styled.div`
+  height: 0;
+  padding-bottom: 100%;
+  position: relative;
+  cursor: ${props => props.clickable ? 'pointer' : 'default'};
+
+  &:hover > ${SelectorBox} {
+    opacity: 0.5;
   }
 `
 
@@ -72,7 +76,6 @@ const Photo = ({
   isSelected,
   onSelect,
   onMouseEnter,
-  onMouseLeave,
   onClick,
   isHovered,
   isVideo
@@ -89,7 +92,6 @@ const Photo = ({
   return (
     <PhotoOuter
       onMouseOver={onMouseEnter}
-      onMouseLeave={onMouseLeave}
       clickable={!isHovered}
     >
       <PhotoInner

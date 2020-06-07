@@ -1,25 +1,8 @@
-import React, { useEffect, useRef } from 'react'
-import styled, { createGlobalStyle } from 'styled-components'
+import React, { useEffect } from 'react'
+import styled from 'styled-components'
 import { useSelector, useDispatch } from 'react-redux'
 import { moveLightboxSelected, setLightboxSelected } from '../actions'
-
-const GlobalStyle = createGlobalStyle({
-  body: {
-    overflow: 'hidden'
-  }
-})
-
-const Container = styled.div`
-  pointer-events: ${props => props.open ? 'all' : 'none'};
-  opacity: ${props => props.open ? 1 : 0};
-  transition: all .5s ease-out;
-  background-color: rgba(0, 0, 0, 0.8);
-  position: fixed;
-  left: 0;
-  top: 0;
-  width: 100vw;
-  height: 100vh;
-`
+import Modal from './Modal'
 
 const Image = styled.img.attrs(props => ({
   src: props.src
@@ -47,7 +30,6 @@ const Lightbox = () => {
   const dispatch = useDispatch()
   const libraryMedia = useSelector(state => state.library.media || [])
   const selectedIndex = useSelector(state => state.lightbox.selected)
-  const containerRef = useRef(null)
   const selectedMedia = libraryMedia[selectedIndex]
   const open = selectedIndex !== -1
 
@@ -70,26 +52,21 @@ const Lightbox = () => {
     return () => window.removeEventListener('keydown', handleKeyDown)
   })
 
-  const handleOutsideClick = (e) => {
-    if (e.target === containerRef.current) {
-      dispatch(setLightboxSelected(-1))
-    }
+  const handleClose = () => {
+    dispatch(setLightboxSelected(-1))
   }
 
   return (
-    <>
-      {open && <GlobalStyle />}
-      <Container open={open} onClick={handleOutsideClick} ref={containerRef}>
-        {selectedMedia && selectedMedia.mediaType === 'photo' && (
-          <Image src={selectedMedia.path} />
-        )}
-        {selectedMedia && selectedMedia.mediaType === 'video' && (
-          <Video>
-            <source src={selectedMedia.path} />
-          </Video>
-        )}
-      </Container>
-    </>
+    <Modal open={open} onClose={handleClose}>
+      {selectedMedia && selectedMedia.mediaType === 'photo' && (
+        <Image src={selectedMedia.path} />
+      )}
+      {selectedMedia && selectedMedia.mediaType === 'video' && (
+        <Video>
+          <source src={selectedMedia.path} />
+        </Video>
+      )}
+    </Modal>
   )
 }
 
