@@ -1,9 +1,9 @@
 import styled from 'styled-components'
 import React, { useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { setInitProgress, setInitializing } from '../actions'
+import { setStatus } from '../actions'
 
-const InitProgressBox = styled.div`
+const Container = styled.div`
   position: fixed;
   opacity: ${props => props.show ? 1 : 0};
   bottom: ${props => props.show ? 0 : '-50px'};
@@ -24,17 +24,19 @@ const Spacer = styled.span`
   flex: 1 0 auto;
 `
 
-const InitProgress = () => {
+const StatusBar = () => {
   const dispatch = useDispatch()
-  const progress = useSelector(state => state.init.progress)
-  const isInitializing = useSelector(state => state.init.isInitializing)
+  const status = useSelector(state => state.status)
 
   useEffect(() => {
-    const progressListener = window.ipcListen('init-progress', (event, progress) => {
-      dispatch(setInitProgress(`${(progress.progress * 100).toFixed(2)}%: ${progress.status}`))
+    const progressListener = window.ipcListen('send-status', (event, status) => {
+      dispatch(setStatus({
+        message: `${(status.progress * 100).toFixed(2)}%: ${status.label}`,
+        cancelId: status.cancelId
+      }))
     })
-    const endListener = window.ipcListen('progress-finished', (event, progress) => {
-      dispatch(setInitializing(false))
+    const endListener = window.ipcListen('end-status', (event, progress) => {
+      dispatch(setStatus({ message: '' }))
     })
 
     return () => {
@@ -44,16 +46,18 @@ const InitProgress = () => {
   }, [])
 
   const handleCancel = () => {
-    window.ipcSend('request-init-cancel')
+    window.ipcSend('request-service-cancel')
   }
 
   return (
-    <InitProgressBox show={isInitializing}>
-      {progress || ''}
+    <Container show={status && status.message}>
+      {status && (status.message || '')}
       <Spacer />
-      <button onClick={handleCancel}>Cancel</button>
-    </InitProgressBox>
+      {status.cancelId && (
+        <button onClick={handleCancel}>Cancel</button>
+      )}
+    </Container>
   )
 }
 
-export default InitProgress
+export default StatusBar

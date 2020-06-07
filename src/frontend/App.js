@@ -4,11 +4,10 @@ import { StoreProvider } from './state'
 import { useSelector, useDispatch } from 'react-redux'
 import { setSettings, setLibraryData, resetLibraryData } from './actions'
 import ThemeProvider from './theme'
-import InitProgress from './Components/InitProgress'
 import Gallery from './Components/Gallery'
-import InitScreen from './Components/InitScreen'
 import Lightbox from './Components/Lightbox'
 import Selection from './Components/Selection'
+import StatusBar from './Components/StatusBar'
 
 const Root = styled.div`
 `
@@ -16,8 +15,6 @@ const Root = styled.div`
 const App = () => {
   const dispatch = useDispatch()
   const settings = useSelector(state => state.settings)
-  const libraryData = useSelector(state => state.library.data)
-  const isInitializing = useSelector(state => state.init.isInitializing)
 
   useEffect(() => {
     const closeSettingsListener = window.ipcListen('send-app-settings', (event, nextSettings) => {
@@ -67,16 +64,10 @@ const App = () => {
 
   return (
     <Root>
-      {isInitializing && !libraryData
-        ? <InitScreen />
-        : (
-          <>
-            <Selection />
-            <Gallery />
-            <Lightbox />
-          </>
-        )}
-      <InitProgress />
+      <Selection />
+      <Gallery />
+      <Lightbox />
+      <StatusBar />
     </Root>
   )
 }

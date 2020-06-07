@@ -12,9 +12,9 @@ const defaultState = {
     status: 'ready',
     library: null
   },
-  init: {
-    isInitializing: false,
-    progress: null
+  status: {
+    message: '',
+    cancelId: null
   },
   lightbox: {
     selected: -1
@@ -127,22 +127,10 @@ const reducer = (state = { ...defaultState }, action) => {
           currentAlbum: 'all'
         }
       }
-    case 'SET_INIT_PROGRESS':
+    case 'SET_STATUS':
       return {
         ...state,
-        init: {
-          ...state.init,
-          progress: action.progress,
-          isInitializing: true
-        }
-      }
-    case 'SET_INIT_BOOLEAN':
-      return {
-        ...state,
-        init: {
-          ...state.init,
-          isInitializing: action.value
-        }
+        status: action.value
       }
     case 'KEY_DOWN':
       return {

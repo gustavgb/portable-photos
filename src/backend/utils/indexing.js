@@ -1,6 +1,7 @@
 const fs = require('../fileSystem')
 const path = require('path')
 const { createIpcSender, promiseSerial, getMediaFiles } = require('./common')
+const { getId, isCancelled } = require('./cancelledServices')
 
 const createMetaReader = (settings) => async (metaPath, media) => {
   try {
@@ -27,9 +28,12 @@ const createMetaReader = (settings) => async (metaPath, media) => {
   }
 }
 
-exports.createIndex = async (settings, media) => {
+exports.createIndex = async (settings, media, id) => {
   const sender = createIpcSender()
   const readPhotoMeta = createMetaReader(settings)
+  if (!id) {
+    id = getId()
+  }
 
   try {
     console.log('Indexing')
@@ -46,10 +50,14 @@ exports.createIndex = async (settings, media) => {
 
     const readMetaFuncs = metadataFiles.map(
       (meta, index) => () => {
+        if (isCancelled(id)) {
+          return Promise.resolve()
+        }
         return readPhotoMeta(meta, media)
           .then(res => {
-            sender('init-progress', {
-              status: 'Indexing',
+            sender('send-status', {
+              cancelId: id,
+              label: 'Indexing',
               progress: index / metadataFiles.length
             })
 
@@ -59,6 +67,11 @@ exports.createIndex = async (settings, media) => {
     )
 
     const validMeta = await promiseSerial(readMetaFuncs)
+
+    if (isCancelled(id)) {
+      sender('end-status')
+      return
+    }
 
     const libraryDataPath = path.resolve(settings.libraryFolder, 'libraryData.json')
     const filteredMeta = validMeta.filter(Boolean)
@@ -71,8 +84,17 @@ exports.createIndex = async (settings, media) => {
       return 0
     })
 
+    if (isCancelled(id)) {
+      sender('end-status')
+      return
+    }
+
     const readAlbumFuncs = albums.map(
       (album, index) => () => {
+        if (isCancelled(id)) {
+          return Promise.resolve()
+        }
+
         const func = async () => {
           const data = await fs.readJson(album)
 
@@ -87,8 +109,9 @@ exports.createIndex = async (settings, media) => {
 
         return func()
           .then(res => {
-            sender('init-progress', {
-              status: 'Mapping albums',
+            sender('send-status', {
+              cancelId: id,
+              label: 'Mapping albums',
               progress: index / albums.length
             })
             return res
@@ -97,6 +120,11 @@ exports.createIndex = async (settings, media) => {
     )
 
     const albumIndexes = await promiseSerial(readAlbumFuncs)
+
+    if (isCancelled(id)) {
+      sender('end-status')
+      return
+    }
 
     const libraryData = {
       albums: [
@@ -114,7 +142,7 @@ exports.createIndex = async (settings, media) => {
 
     sender('send-library-data', libraryDataPath)
 
-    sender('progress-finished')
+    sender('end-status')
 
     return filteredMeta
   } catch (e) {

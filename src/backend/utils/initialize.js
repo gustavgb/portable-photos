@@ -4,6 +4,7 @@ const { SETTINGS_FILE, pattern } = require('../constants')
 const path = require('path')
 const { createIpcSender, getMediaFiles } = require('./common')
 const { createIndex } = require('./indexing')
+const { getId, isCancelled } = require('./cancelledServices')
 
 const createMetaWriter = (settings) => async (media) => {
   try {
@@ -77,21 +78,16 @@ const promiseSerial = funcs =>
     promise.then(result => func().then(Array.prototype.concat.bind(result))),
   Promise.resolve([]))
 
-const cancelledInits = {
-  counter: 0
-}
-
 exports.initialize = async () => {
   const sender = createIpcSender()
 
-  const id = ++cancelledInits.counter
+  const id = getId()
 
   console.log('Begin initialize')
 
-  sender('init-start')
-
-  sender('init-progress', {
-    status: 'Preparing',
+  sender('send-status', {
+    cancelId: id,
+    label: 'Preparing',
     progress: 0
   })
 
@@ -112,43 +108,46 @@ exports.initialize = async () => {
       await fs.mkdir(path.resolve(settings.libraryFolder, 'metadata'))
     }
 
-    sender('init-progress', {
-      status: 'Finding media',
+    sender('send-status', {
+      cancelId: id,
+      label: 'Finding media',
       progress: 0
     })
 
     const media = await getMediaFiles(settings)
-    const validMetaData = await createIndex(settings, media)
+    const validMetaData = await createIndex(settings, media, id)
 
-    console.log('test')
-
-    sender('init-progress', {
-      status: 'Finding files without metadata',
+    sender('send-status', {
+      cancelId: id,
+      label: 'Finding files without metadata',
       progress: 0
     })
 
-    let mediaWithMissing = []
-    if (!cancelledInits[id]) {
-      mediaWithMissing = media.filter(photo => !validMetaData.find(meta => meta && meta.path === photo))
+    if (isCancelled(id)) {
+      sender('end-status')
+      return
     }
+
+    const mediaWithMissing = media.filter(photo => !validMetaData.find(meta => meta && meta.path === photo))
 
     console.log('Found ' + mediaWithMissing.length + ' media without valid metadata')
 
-    if (cancelledInits[id]) {
-      sender('progress-finished')
+    if (isCancelled(id) || mediaWithMissing.length === 0) {
+      sender('end-status')
       return
     }
 
     const createMetaFuncs = mediaWithMissing.map(
       (photo, index) => () => {
-        if (cancelledInits[id]) {
+        if (isCancelled(id)) {
           return Promise.resolve()
         }
 
         return createPhotoMeta(photo)
           .then(res => {
-            sender('init-progress', {
-              status: 'Creating metadata',
+            sender('send-status', {
+              cancelId: id,
+              label: 'Creating metadata',
               progress: index / mediaWithMissing.length
             })
 
@@ -159,22 +158,17 @@ exports.initialize = async () => {
 
     await promiseSerial(createMetaFuncs)
 
-    if (cancelledInits[id]) {
-      sender('progress-finished')
+    if (isCancelled(id)) {
+      sender('end-status')
       return
     }
 
-    await createIndex(settings, media)
+    await createIndex(settings, media, id)
 
-    sender('progress-finished')
+    sender('end-status')
 
     console.log('Finish initialize')
   } catch (e) {
     console.log(e)
   }
-}
-
-exports.cancelInit = () => {
-  console.log('Cancelling init #' + cancelledInits.counter)
-  cancelledInits[cancelledInits.counter] = true
 }

@@ -12,13 +12,8 @@ export const resetLibraryData = () => ({
   type: 'RESET_LIBRARY_DATA'
 })
 
-export const setInitProgress = (progress) => ({
-  type: 'SET_INIT_PROGRESS',
-  progress
-})
-
-export const setInitializing = (value) => ({
-  type: 'SET_INIT_BOOLEAN',
+export const setStatus = (value) => ({
+  type: 'SET_STATUS',
   value
 })
 
