@@ -2,7 +2,8 @@
 
 const { app, BrowserWindow, Menu } = require('electron')
 const path = require('path')
-const utils = require('./backend/utils')
+const { initialize } = require('./backend/utils/initialize')
+const { setLibraryLocation } = require('./backend/utils/setLibraryLocation')
 const { setMainWindow } = require('./backend/mainWindowState')
 require('./backend/ipcMain')
 require('./backend/server')
@@ -45,13 +46,13 @@ const createWindow = () => {
         {
           label: 'Set library location',
           click () {
-            utils.setLibraryLocation()
+            setLibraryLocation()
           }
         },
         {
           label: 'Scan library',
           click () {
-            utils.initialize()
+            initialize()
           }
         }
       ]
@@ -76,7 +77,7 @@ const createWindow = () => {
 
   Menu.setApplicationMenu(menu)
 
-  utils.initialize()
+  initialize()
 }
 
 // This method will be called when Electron has finished

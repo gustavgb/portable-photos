@@ -1,73 +1,9 @@
-const { dialog, nativeImage } = require('electron')
-const fs = require('./fileSystem')
-const { APP_DIR, SETTINGS_FILE, pattern } = require('./constants')
+const { nativeImage } = require('electron')
+const fs = require('../fileSystem')
+const { SETTINGS_FILE, pattern } = require('../constants')
 const path = require('path')
-const { getMainWindow } = require('./mainWindowState')
-
-const createIpcSender = () => {
-  let focusedWindow = getMainWindow()
-
-  return (name, arg) => {
-    if (!focusedWindow) {
-      focusedWindow = getMainWindow()
-    }
-
-    if (focusedWindow) {
-      focusedWindow.webContents.send(name, arg)
-    }
-  }
-}
-
-exports.setLibraryLocation = async () => {
-  const sender = createIpcSender()
-  try {
-    const result = await dialog.showOpenDialog({ properties: ['openDirectory'] })
-
-    const libraryLocation = result.filePaths[0]
-
-    if ((await fs.exists(APP_DIR)) === false) {
-      await fs.mkdir(APP_DIR)
-    }
-
-    const settings = {
-      library: libraryLocation,
-      libraryFolder: path.resolve(libraryLocation, 'library')
-    }
-
-    await fs.writeFile(SETTINGS_FILE, JSON.stringify(settings), 'utf8')
-
-    exports.cancelInit()
-
-    sender('send-app-settings', settings)
-  } catch (e) {
-    console.log(e)
-  }
-}
-
-const createMetaReader = (settings) => async (metaPath, media) => {
-  try {
-    const metadata = await fs.readJson(metaPath)
-    const hasThumbFile = (metadata && metadata.thumbPath) ? (await fs.exists(metadata.thumbPath)) : false
-    const exists = media.indexOf(metadata.path) > -1
-
-    if (
-      exists &&
-      metadata &&
-      hasThumbFile &&
-      metadata.thumbPath &&
-      metadata.path &&
-      metadata.createDate &&
-      metadata.mediaType
-    ) {
-      return metadata
-    }
-
-    return null
-  } catch (e) {
-    console.log(e)
-    console.log(metaPath)
-  }
-}
+const { createIpcSender, getMediaFiles } = require('./common')
+const { createIndex } = require('./indexing')
 
 const createMetaWriter = (settings) => async (media) => {
   try {
@@ -161,28 +97,7 @@ exports.initialize = async () => {
 
   try {
     const settings = await fs.readJson(SETTINGS_FILE)
-    const libraryDataPath = path.resolve(settings.libraryFolder, 'libraryData.json')
 
-    const createAndWriteIndex = async (meta) => {
-      const filteredMeta = meta.filter(Boolean)
-      filteredMeta.sort((a, b) => {
-        if (a.createDate < b.createDate) {
-          return 1
-        } else if (a.createDate > b.createDate) {
-          return -1
-        }
-        return 0
-      })
-
-      const libraryData = {
-        media: filteredMeta
-      }
-
-      await fs.writeFile(libraryDataPath, JSON.stringify(libraryData), 'utf8')
-      sender('send-library-data', libraryDataPath)
-    }
-
-    const readPhotoMeta = createMetaReader(settings)
     const createPhotoMeta = createMetaWriter(settings)
 
     if (await fs.exists(settings.libraryFolder) === false) {
@@ -202,43 +117,8 @@ exports.initialize = async () => {
       progress: 0
     })
 
-    const files = await fs.glob(`${settings.library}/**/*`)
-    const media = files.filter(file =>
-      !pattern.LIBRARY_FILE_REG.test(file) &&
-      pattern.FILE_EXTENSION_REG.test(file) &&
-      pattern.MEDIA_REG.test(file)
-    )
-    let metadataFiles = await fs.glob(`${settings.libraryFolder}/metadata/*`)
-
-    console.log('Found ' + media.length + ' media')
-    console.log('Found ' + metadataFiles.length + ' meta files')
-
-    const readMetaFuncs = metadataFiles.map(
-      (meta, index) => () => {
-        if (cancelledInits[id]) {
-          return Promise.resolve()
-        }
-
-        return readPhotoMeta(meta, media)
-          .then(res => {
-            sender('init-progress', {
-              status: 'Getting metadata',
-              progress: index / metadataFiles.length
-            })
-
-            return res
-          })
-      }
-    )
-
-    const validMetaData = await promiseSerial(readMetaFuncs)
-
-    if (cancelledInits[id]) {
-      sender('init-end')
-      return
-    }
-
-    await createAndWriteIndex(validMetaData)
+    const media = await getMediaFiles(settings)
+    const validMetaData = await createIndex(settings, media)
 
     sender('init-progress', {
       status: 'Finding files without metadata',
@@ -253,7 +133,7 @@ exports.initialize = async () => {
     console.log('Found ' + mediaWithMissing.length + ' media without valid metadata')
 
     if (cancelledInits[id]) {
-      sender('init-end')
+      sender('progress-finished')
       return
     }
 
@@ -278,39 +158,13 @@ exports.initialize = async () => {
     await promiseSerial(createMetaFuncs)
 
     if (cancelledInits[id]) {
-      sender('init-end')
+      sender('progress-finished')
       return
     }
 
-    metadataFiles = await fs.glob(`${settings.libraryFolder}/metadata/*.json`)
+    await createIndex(settings, media)
 
-    const indexMetaFuncs = metadataFiles.map(
-      (meta, index) => () => {
-        if (cancelledInits[id]) {
-          return Promise.resolve()
-        }
-        return readPhotoMeta(meta, media)
-          .then(res => {
-            sender('init-progress', {
-              status: 'Indexing',
-              progress: index / metadataFiles.length
-            })
-
-            return res
-          })
-      }
-    )
-
-    if (cancelledInits[id]) {
-      sender('init-end')
-      return
-    }
-
-    const photoIndex = await promiseSerial(indexMetaFuncs)
-
-    await createAndWriteIndex(photoIndex)
-
-    sender('init-end')
+    sender('progress-finished')
 
     console.log('Finish initialize')
   } catch (e) {

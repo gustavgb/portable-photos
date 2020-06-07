@@ -33,16 +33,12 @@ const InitProgress = () => {
     const progressListener = window.ipcListen('init-progress', (event, progress) => {
       dispatch(setInitProgress(`${(progress.progress * 100).toFixed(2)}%: ${progress.status}`))
     })
-    const startListener = window.ipcListen('init-start', (event, progress) => {
-      dispatch(setInitializing(true))
-    })
-    const endListener = window.ipcListen('init-end', (event, progress) => {
+    const endListener = window.ipcListen('progress-finished', (event, progress) => {
       dispatch(setInitializing(false))
     })
 
     return () => {
       progressListener()
-      startListener()
       endListener()
     }
   }, [])
