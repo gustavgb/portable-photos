@@ -30,7 +30,8 @@ exports.setLibraryLocation = async () => {
     }
 
     const settings = {
-      library: libraryLocation
+      library: libraryLocation,
+      libraryFolder: path.resolve(libraryLocation, 'library')
     }
 
     await fs.writeFile(SETTINGS_FILE, JSON.stringify(settings), 'utf8')
@@ -43,12 +44,14 @@ exports.setLibraryLocation = async () => {
   }
 }
 
-const createMetaReader = (settings) => async (metaPath) => {
+const createMetaReader = (settings) => async (metaPath, photos) => {
   try {
     const metadata = await fs.readJson(metaPath)
     const hasThumbFile = (metadata && metadata.thumbPath) ? (await fs.exists(metadata.thumbPath)) : false
+    const exists = photos.indexOf(metadata.path)
 
     if (
+      exists &&
       metadata &&
       hasThumbFile &&
       metadata.size &&
@@ -109,8 +112,8 @@ const createMetaWriter = (settings) => async (photo) => {
     const thumbSize = thumb.getSize()
 
     const fileName = photo.split('/').pop()
-    const thumbPath = path.resolve(settings.library, `.library/thumbnails/${fileName}.jpg`)
-    const metaPath = path.resolve(settings.library, `.library/metadata/${fileName}.json`)
+    const thumbPath = path.resolve(settings.libraryFolder, `thumbnails/${fileName}.jpg`)
+    const metaPath = path.resolve(settings.libraryFolder, `metadata/${fileName}.json`)
 
     await fs.writeFile(thumbPath, thumb.toJPEG(50))
 
@@ -157,7 +160,7 @@ exports.initialize = async () => {
 
   try {
     const settings = await fs.readJson(SETTINGS_FILE)
-    const libraryDataPath = path.resolve(settings.library, '.library/libraryData.json')
+    const libraryDataPath = path.resolve(settings.libraryFolder, 'libraryData.json')
 
     const createAndWriteIndex = async (meta) => {
       const filteredMeta = meta.filter(Boolean)
@@ -181,16 +184,16 @@ exports.initialize = async () => {
     const readPhotoMeta = createMetaReader(settings)
     const createPhotoMeta = createMetaWriter(settings)
 
-    if (await fs.exists(path.resolve(settings.library, '.library')) === false) {
-      await fs.mkdir(path.resolve(settings.library, '.library'))
+    if (await fs.exists(settings.libraryFolder) === false) {
+      await fs.mkdir(settings.libraryFolder)
     }
 
-    if (await fs.exists(path.resolve(settings.library, '.library/thumbnails')) === false) {
-      await fs.mkdir(path.resolve(settings.library, '.library/thumbnails'))
+    if (await fs.exists(path.resolve(settings.libraryFolder, 'thumbnails')) === false) {
+      await fs.mkdir(path.resolve(settings.libraryFolder, 'thumbnails'))
     }
 
-    if (await fs.exists(path.resolve(settings.library, '.library/metadata')) === false) {
-      await fs.mkdir(path.resolve(settings.library, '.library/metadata'))
+    if (await fs.exists(path.resolve(settings.libraryFolder, 'metadata')) === false) {
+      await fs.mkdir(path.resolve(settings.libraryFolder, 'metadata'))
     }
 
     sender('init-progress', {
@@ -204,7 +207,7 @@ exports.initialize = async () => {
       pattern.FILE_EXTENSION_REG.test(file) &&
       pattern.PHOTO_REG.test(file)
     )
-    let metadataFiles = await fs.glob(`${settings.library}/.library/metadata/*`)
+    let metadataFiles = await fs.glob(`${settings.libraryFolder}/metadata/*`)
 
     console.log('Found ' + photos.length + ' photos')
     console.log('Found ' + metadataFiles.length + ' meta files')
@@ -215,11 +218,11 @@ exports.initialize = async () => {
           return Promise.resolve()
         }
 
-        return readPhotoMeta(meta)
+        return readPhotoMeta(meta, photos)
           .then(res => {
             sender('init-progress', {
               status: 'Getting metadata',
-              progress: index / photos.length
+              progress: index / metadataFiles.length
             })
 
             return res
@@ -278,14 +281,14 @@ exports.initialize = async () => {
       return
     }
 
-    metadataFiles = await fs.glob(`${settings.library}/.library/metadata/*.json`)
+    metadataFiles = await fs.glob(`${settings.libraryFolder}/metadata/*.json`)
 
     const indexMetaFuncs = metadataFiles.map(
       (meta, index) => () => {
         if (cancelledInits[id]) {
           return Promise.resolve()
         }
-        return readPhotoMeta(meta)
+        return readPhotoMeta(meta, photos)
           .then(res => {
             sender('init-progress', {
               status: 'Indexing',
