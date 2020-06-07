@@ -3,7 +3,6 @@ const fs = require('./fileSystem')
 const { APP_DIR, SETTINGS_FILE, pattern } = require('./constants')
 const path = require('path')
 const { getMainWindow } = require('./mainWindowState')
-const ffmpeg = require('fluent-ffmpeg')
 
 const createIpcSender = () => {
   let focusedWindow = getMainWindow()
@@ -124,13 +123,7 @@ const createMetaWriter = (settings) => async (media) => {
       await fs.writeFile(thumbPath, thumb.toJPEG(50))
     } else if (meta.mediaType === 'video') {
       thumbPath = thumbPath + '.png'
-      await ffmpeg(media)
-        .screenshots({
-          count: 1,
-          filename: path.basename(thumbPath),
-          folder: path.dirname(thumbPath),
-          size: '320x?'
-        })
+      await fs.createThumb(media, thumbPath)
     }
 
     meta.thumbPath = thumbPath

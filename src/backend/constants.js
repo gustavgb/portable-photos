@@ -12,7 +12,7 @@ const JPG_EXTENSION_REG = /\.(jpg|jpeg)$/i
 const LIBRARY_FILE_REG = /^.*library.*$/
 
 const PHOTO_REG = /^.*\.(png|jpe?g|gif|svg|bmp)/i
-const VIDEO_REG = /^.*\.(webm|avi|mov|wmv|mp4)/i
+const VIDEO_REG = /^.*\.(webm|avi|mov|wmv|mp4|mts)/i
 
 module.exports = {
   APP_DIR,
