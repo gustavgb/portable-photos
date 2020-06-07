@@ -5,7 +5,7 @@ import { Provider } from 'react-redux'
 const defaultState = {
   library: {
     status: 'ready',
-    data: null,
+    media: null,
     lastUpdate: 0
   },
   settings: {
@@ -16,7 +16,14 @@ const defaultState = {
     isInitializing: false,
     progress: null
   },
+  lightbox: {
+    selected: -1
+  },
   keys: {}
+}
+
+const encodePath = (path) => {
+  return encodeURI(path).replace(/\)/g, 'CLOSING_PAREN').replace(/\(/g, 'OPEN_PAREN')
 }
 
 const reducer = (state = { ...defaultState }, action) => {
@@ -34,8 +41,38 @@ const reducer = (state = { ...defaultState }, action) => {
         ...state,
         library: {
           status: 'loaded',
-          data: action.libraryData,
+          media: action.libraryData.media.map((image, index) => ({
+            ...image,
+            index,
+            path: `http://localhost:3001${encodePath(image.path)}`,
+            thumbnail: `http://localhost:3001${encodePath(image.thumbPath)}`,
+            isSelected: false
+          })),
           lastUpdate: Date.now()
+        }
+      }
+    case 'TOGGLE_SELECTED':
+      return {
+        ...state,
+        library: {
+          ...state.library,
+          lastUpdate: Date.now(),
+          media: state.library.media.map((image) => image.index === action.index ? ({
+            ...image,
+            isSelected: !image.isSelected
+          }) : image)
+        }
+      }
+    case 'TOGGLE_MULTIPLE':
+      return {
+        ...state,
+        library: {
+          ...state.library,
+          lastUpdate: Date.now(),
+          media: state.library.media.map((image) => (image.index <= action.to && image.index >= action.from) ? ({
+            ...image,
+            isSelected: true
+          }) : image)
         }
       }
     case 'RESET_LIBRARY_DATA':
@@ -80,6 +117,22 @@ const reducer = (state = { ...defaultState }, action) => {
       return {
         ...state,
         keys: {}
+      }
+    case 'LIGHTBOX_SET_SELECTED':
+      return {
+        ...state,
+        lightbox: {
+          ...state.lightbox,
+          selected: action.selected
+        }
+      }
+    case 'LIGHTBOX_MOVE_SELECTED':
+      return {
+        ...state,
+        lightbox: {
+          ...state.lightbox,
+          selected: state.lightbox.selected + action.movement
+        }
       }
     default:
       return state

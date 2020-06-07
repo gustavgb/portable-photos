@@ -7,6 +7,7 @@ import ThemeProvider from './theme'
 import InitProgress from './Components/InitProgress'
 import Gallery from './Components/Gallery'
 import InitScreen from './Components/InitScreen'
+import Lightbox from './Components/Lightbox'
 
 const Root = styled.div`
 `
@@ -67,7 +68,12 @@ const App = () => {
     <Root>
       {isInitializing && !libraryData
         ? <InitScreen />
-        : <Gallery />}
+        : (
+          <>
+            <Gallery />
+            <Lightbox />
+          </>
+        )}
       <InitProgress />
     </Root>
   )

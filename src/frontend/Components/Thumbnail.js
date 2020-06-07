@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useRef } from 'react'
 import styled from 'styled-components'
 import circle from '../assets/circle.svg'
 import circleChecked from '../assets/check-circle.svg'
@@ -8,6 +8,7 @@ const PhotoOuter = styled.div`
   height: 0;
   padding-bottom: 100%;
   position: relative;
+  cursor: ${props => props.clickable ? 'pointer' : 'default'};
 `
 
 const PhotoInner = styled.div.attrs(props => ({
@@ -72,12 +73,16 @@ const Photo = ({
   onSelect,
   onMouseEnter,
   onMouseLeave,
+  onClick,
   isHovered,
   isVideo
 }) => {
-  const handleClick = () => {
+  const innerRef = useRef(null)
+  const handleClick = (e) => {
     if (isHovered) {
       onSelect()
+    } else if (e.target === innerRef.current) {
+      onClick()
     }
   }
 
@@ -85,11 +90,13 @@ const Photo = ({
     <PhotoOuter
       onMouseOver={onMouseEnter}
       onMouseLeave={onMouseLeave}
-      onClick={handleClick}
+      clickable={!isHovered}
     >
       <PhotoInner
         src={src}
         isSelected={isSelected || isHovered}
+        onClick={handleClick}
+        ref={innerRef}
       />
       <SelectorBox onClick={onSelect} isSelected={isSelected}>
         <Selector isSelected={isSelected} />

@@ -1,36 +1,8 @@
-import React, { useReducer, useEffect, useState, useRef, useMemo } from 'react'
+import React, { useEffect, useState, useRef, useMemo } from 'react'
 import styled from 'styled-components'
 import Thumbnail from './Thumbnail'
-import { useSelector } from 'react-redux'
-
-const encodePath = (path) => {
-  return encodeURI(path).replace(/\)/g, 'CLOSING_PAREN').replace(/\(/g, 'OPEN_PAREN')
-}
-
-const reducer = (state, action) => {
-  switch (action.type) {
-    case 'SET_IMAGES':
-      return action.images.map((image, index) => ({
-        ...image,
-        index,
-        path: `http://localhost:3001${encodePath(image.path)}`,
-        thumbnail: `http://localhost:3001${encodePath(image.thumbPath)}`,
-        isSelected: false
-      }))
-    case 'TOGGLE_SELECTED':
-      return state.map((image) => image.index === action.index ? ({
-        ...image,
-        isSelected: !image.isSelected
-      }) : image)
-    case 'TOGGLE_MULTIPLE':
-      return state.map((image) => (image.index <= action.to && image.index >= action.from) ? ({
-        ...image,
-        isSelected: true
-      }) : image)
-    default:
-      return state
-  }
-}
+import { useSelector, useDispatch } from 'react-redux'
+import { toggleMultiple, toggleSelected, setLightboxSelected } from '../actions'
 
 const Container = styled.div.attrs(props => ({
   style: {
@@ -55,9 +27,9 @@ const Grid = styled.div.attrs(props => ({
 `
 
 const Gallery = () => {
-  const libraryMedia = useSelector(state => state.library.data ? state.library.data.media : [])
+  const dispatch = useDispatch()
+  const media = useSelector(state => state.library.media || [])
   const libraryLastUpdate = useSelector(state => state.library.lastUpdate)
-  const [images, dispatch] = useReducer(reducer, [])
   const keys = useSelector(state => state.keys)
   const [lastSelected, setLastSelected] = useState(-1)
   const [hovered, setHover] = useState(-1)
@@ -66,12 +38,11 @@ const Gallery = () => {
   const [cellHeight, setCellHeight] = useState(0)
   const [firstRow, setFirstRow] = useState(0)
   const [visibleCells, setVisibleCells] = useState(0)
-  const [updatedTs, setUpdatedTs] = useState(0)
   const outerRef = useRef(null)
 
   const visibleImages = useMemo(
-    () => images.slice(firstRow * columns, firstRow * columns + visibleCells),
-    [firstRow, columns, visibleCells, images.length, updatedTs]
+    () => media.slice(firstRow * columns, firstRow * columns + visibleCells),
+    [firstRow, columns, visibleCells, libraryLastUpdate]
   )
 
   const selectMultiple = Boolean(keys.Shift) && lastSelected !== -1
@@ -79,15 +50,11 @@ const Gallery = () => {
   const selectEnd = selectMultiple ? Math.max(hovered, lastSelected) : -1
 
   useEffect(() => {
-    dispatch({ type: 'SET_IMAGES', images: libraryMedia })
-  }, [libraryLastUpdate])
-
-  useEffect(() => {
     const onResize = () => {
       const rect = outerRef.current.getBoundingClientRect()
       const width = rect.width
       const columns = Math.floor((width - 10) / 160)
-      const rows = Math.ceil(images.length / columns)
+      const rows = Math.ceil(media.length / columns)
       const cellHeight = (width - 10) / columns
 
       setColumns(columns)
@@ -99,7 +66,7 @@ const Gallery = () => {
 
     window.addEventListener('resize', onResize)
     return () => window.removeEventListener('resize', onResize)
-  }, [images.length])
+  }, [libraryLastUpdate])
 
   useEffect(() => {
     const onScroll = () => {
@@ -115,16 +82,19 @@ const Gallery = () => {
 
   const handleSelect = (index, prevSelected) => {
     if (!selectMultiple) {
-      dispatch({ type: 'TOGGLE_SELECTED', index })
+      dispatch(toggleSelected(index))
       if (prevSelected) {
         setLastSelected(-1)
       } else {
         setLastSelected(index)
       }
     } else {
-      dispatch({ type: 'TOGGLE_MULTIPLE', from: selectStart, to: selectEnd })
+      dispatch(toggleMultiple(selectStart, selectEnd))
     }
-    setUpdatedTs(Date.now())
+  }
+
+  const handleOpen = (index) => {
+    dispatch(setLightboxSelected(index))
   }
 
   return (
@@ -143,6 +113,7 @@ const Gallery = () => {
               selectStart <= image.index &&
               selectEnd >= image.index
             )}
+            onClick={() => handleOpen(image.index)}
           />
         ))}
       </Grid>
