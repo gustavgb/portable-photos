@@ -25,6 +25,16 @@ const exists = (path) => new Promise((resolve, reject) => {
   })
 })
 
+const lstat = (path) => new Promise((resolve, reject) => {
+  fs.lstat(path, (err, stats) => {
+    if (!err) {
+      resolve(stats)
+    } else {
+      resolve(null)
+    }
+  })
+})
+
 const readExif = (path) => new Promise((resolve, reject) => {
   new ExifImage({ image: path }, function (err, exifData) {
     if (err) {
@@ -62,7 +72,7 @@ module.exports = {
   writeFile: promisify(fs.writeFile),
   rmdir: promisify(fs.rmdir),
   mkdir: promisify(fs.mkdir),
-  lstat: promisify(fs.lstat),
+  lstat,
   readFile: promisify(fs.readFile),
   unlink: promisify(fs.unlink),
   readJson,

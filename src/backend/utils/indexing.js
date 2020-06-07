@@ -8,6 +8,8 @@ const createMetaReader = (settings) => async (metaPath, media) => {
     const metadata = await fs.readJson(metaPath)
     const hasThumbFile = (metadata && metadata.thumbPath) ? (await fs.exists(metadata.thumbPath)) : false
     const exists = media.indexOf(metadata.path) > -1
+    const stat = await fs.lstat(metadata.path)
+    const mtime = stat && stat.mtime
 
     if (
       exists &&
@@ -16,7 +18,9 @@ const createMetaReader = (settings) => async (metaPath, media) => {
       metadata.thumbPath &&
       metadata.path &&
       metadata.createDate &&
-      metadata.mediaType
+      metadata.mediaType &&
+      metadata.mtime &&
+      new Date(mtime).getTime() === metadata.mtime
     ) {
       return metadata
     }

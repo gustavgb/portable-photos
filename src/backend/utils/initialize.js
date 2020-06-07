@@ -5,6 +5,7 @@ const path = require('path')
 const { createIpcSender, getMediaFiles } = require('./common')
 const { createIndex } = require('./indexing')
 const { getId, isCancelled } = require('./cancelledServices')
+const { beginWatching } = require('./watcher')
 
 const createMetaWriter = (settings) => async (media) => {
   try {
@@ -19,6 +20,10 @@ const createMetaWriter = (settings) => async (media) => {
     } else if (isPhoto && !isVideo) {
       meta.mediaType = 'photo'
     }
+
+    const stat = await fs.lstat(media)
+
+    meta.mtime = new Date(stat.mtime).getTime()
 
     const googleMetaPath = media + '.json'
     const hasGoogleMeta = await fs.exists(googleMetaPath)
@@ -106,6 +111,13 @@ exports.initialize = async () => {
 
     if (await fs.exists(path.resolve(settings.libraryFolder, 'metadata')) === false) {
       await fs.mkdir(path.resolve(settings.libraryFolder, 'metadata'))
+    }
+
+    beginWatching(settings.library, id, exports.initialize)
+
+    if (isCancelled(id)) {
+      sender('end-status')
+      return
     }
 
     sender('send-status', {
