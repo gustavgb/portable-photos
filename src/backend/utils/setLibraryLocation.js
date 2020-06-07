@@ -22,8 +22,6 @@ exports.setLibraryLocation = async () => {
 
     await fs.writeFile(SETTINGS_FILE, JSON.stringify(settings), 'utf8')
 
-    exports.cancelInit()
-
     sender('send-app-settings', settings)
   } catch (e) {
     console.log(e)

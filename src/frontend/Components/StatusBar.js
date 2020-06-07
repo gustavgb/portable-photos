@@ -53,7 +53,7 @@ const StatusBar = () => {
     <Container show={status && status.message}>
       {status && (status.message || '')}
       <Spacer />
-      {status.cancelId && (
+      {Boolean(status.cancelId || status.cancelId === 0) && (
         <button onClick={handleCancel}>Cancel</button>
       )}
     </Container>

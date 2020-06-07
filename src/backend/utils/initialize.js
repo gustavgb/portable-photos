@@ -4,7 +4,7 @@ const { SETTINGS_FILE, pattern } = require('../constants')
 const path = require('path')
 const { createIpcSender, getMediaFiles } = require('./common')
 const { createIndex } = require('./indexing')
-const { getId, isCancelled } = require('./cancelledServices')
+const { getId, isCancelled, cancel } = require('./cancelledServices')
 const { beginWatching } = require('./watcher')
 
 const createMetaWriter = (settings) => async (media) => {
@@ -83,10 +83,17 @@ const promiseSerial = funcs =>
     promise.then(result => func().then(Array.prototype.concat.bind(result))),
   Promise.resolve([]))
 
+let lastId
+
 exports.initialize = async () => {
   const sender = createIpcSender()
 
+  if (lastId) {
+    cancel(lastId)
+  }
+
   const id = getId()
+  lastId = id
 
   console.log('Begin initialize')
 
@@ -113,7 +120,7 @@ exports.initialize = async () => {
       await fs.mkdir(path.resolve(settings.libraryFolder, 'metadata'))
     }
 
-    beginWatching(settings.library, id, exports.initialize)
+    beginWatching(settings.library, exports.initialize)
 
     if (isCancelled(id)) {
       sender('end-status')

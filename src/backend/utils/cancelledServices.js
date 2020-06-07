@@ -9,4 +9,4 @@ exports.cancel = (id) => {
   state.cancelled[id] = true
 }
 
-exports.getId = () => state.counter++
+exports.getId = () => ++state.counter

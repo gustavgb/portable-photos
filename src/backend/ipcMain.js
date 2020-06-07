@@ -4,6 +4,7 @@ const { SETTINGS_FILE } = require('./constants')
 const path = require('path')
 const { createAlbum, updateAlbum, deleteAlbum } = require('./utils/albums')
 const { cancel } = require('./utils/cancelledServices')
+const { initialize } = require('./utils/initialize')
 
 ipcMain.on('request-app-settings', async (event) => {
   console.log('Received settings request')
@@ -27,6 +28,14 @@ ipcMain.on('request-library-data', async (event) => {
     const libraryDataPath = path.resolve(settings.libraryFolder, 'libraryData.json')
 
     event.reply('send-library-data', libraryDataPath)
+  } catch (e) {
+    console.log(e)
+  }
+})
+
+ipcMain.on('request-library-init', async () => {
+  try {
+    await initialize()
   } catch (e) {
     console.log(e)
   }
