@@ -64,6 +64,7 @@ module.exports = {
   mkdir: promisify(fs.mkdir),
   lstat: promisify(fs.lstat),
   readFile: promisify(fs.readFile),
+  unlink: promisify(fs.unlink),
   readJson,
   glob: promisify(glob),
   exists,

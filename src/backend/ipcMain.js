@@ -2,7 +2,7 @@ const { ipcMain } = require('electron')
 const fs = require('./fileSystem')
 const { SETTINGS_FILE } = require('./constants')
 const path = require('path')
-const { createAlbum } = require('./utils/createAlbum')
+const { createAlbum, updateAlbum, deleteAlbum } = require('./utils/albums')
 const { cancel } = require('./utils/cancelledServices')
 
 ipcMain.on('request-app-settings', async (event) => {
@@ -48,6 +48,28 @@ ipcMain.on('request-new-album', async (event, arg) => {
 
   try {
     await createAlbum(arg)
+  } catch (e) {
+    console.log(e)
+  }
+})
+
+ipcMain.on('request-update-album', async (event, arg) => {
+  console.log('Recieved update album request')
+  console.log(arg)
+
+  try {
+    await updateAlbum(arg)
+  } catch (e) {
+    console.log(e)
+  }
+})
+
+ipcMain.on('request-delete-album', async (event, arg) => {
+  console.log('Recieved delete album request')
+  console.log(arg)
+
+  try {
+    await deleteAlbum(arg)
   } catch (e) {
     console.log(e)
   }

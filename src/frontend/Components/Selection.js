@@ -79,6 +79,7 @@ const Selection = () => {
   const dispatch = useDispatch()
   const album = useSelector(state => state.library.albums.find(album => album.id === state.library.currentAlbum) || {})
   const media = album.media || []
+  const currentAlbum = useSelector(state => state.library.currentAlbum)
   const libraryLastUpdate = useSelector(state => state.library.lastUpdate)
   const numSelected = useMemo(() => media.filter(media => media.isSelected).length, [libraryLastUpdate])
   const [showAlbums, setShowAlbums] = useState(false)
@@ -93,6 +94,19 @@ const Selection = () => {
       name: search,
       items: media.filter(media => media.isSelected).map(media => media.originalPath)
     })
+
+    setShowAlbums(false)
+    dispatch(clearSelected())
+  }
+
+  const handleRemove = () => {
+    window.ipcSend('request-update-album', {
+      id: currentAlbum,
+      items: media.filter(media => !media.isSelected).map(media => media.originalPath)
+    })
+
+    setShowAlbums(false)
+    dispatch(clearSelected())
   }
 
   return (
@@ -121,6 +135,9 @@ const Selection = () => {
           </Title>
           <Spacer />
           <Button onClick={() => setShowAlbums(true)}>Add to album</Button>
+          {currentAlbum !== 'all' && (
+            <Button onClick={handleRemove}>Remove from album</Button>
+          )}
         </Container>
       </Collapse>
     </>

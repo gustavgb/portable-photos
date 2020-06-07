@@ -2,7 +2,9 @@ import React, { useEffect, useState, useRef, useMemo } from 'react'
 import styled from 'styled-components'
 import Thumbnail from './Thumbnail'
 import { useSelector, useDispatch } from 'react-redux'
-import { toggleMultiple, toggleSelected, setLightboxSelected } from '../actions'
+import { toggleMultiple, toggleSelected, setLightboxSelected, clearSelected, setCurrentAlbum } from '../actions'
+import Typography from '../Blocks/Typography'
+import Button from '../Blocks/Button'
 
 const Container = styled.div.attrs(props => ({
   style: {
@@ -20,16 +22,24 @@ const Grid = styled.div.attrs(props => ({
   position: absolute;
   left: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
   gap: 1rem;
   width: 100%;
   padding: 1rem;
+`
+
+const Centered = styled.div`
+  padding: 10rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 `
 
 const Gallery = () => {
   const dispatch = useDispatch()
   const album = useSelector(state => state.library.albums.find(album => album.id === state.library.currentAlbum) || {})
   const media = album.media || []
+  const currentAlbum = useSelector(state => state.library.currentAlbum)
   const libraryLastUpdate = useSelector(state => state.library.lastUpdate)
   const keys = useSelector(state => state.keys)
   const [lastSelected, setLastSelected] = useState(-1)
@@ -52,6 +62,10 @@ const Gallery = () => {
 
   useEffect(() => {
     const onResize = () => {
+      if (!outerRef.current) {
+        return
+      }
+
       const rect = outerRef.current.getBoundingClientRect()
       const width = rect.width
       const columns = Math.floor((width - 10) / 160)
@@ -96,6 +110,26 @@ const Gallery = () => {
 
   const handleOpen = (index) => {
     dispatch(setLightboxSelected(index))
+  }
+
+  const handleDeleteAlbum = () => {
+    window.ipcSend('request-delete-album', {
+      id: currentAlbum
+    })
+
+    dispatch(clearSelected())
+    dispatch(setCurrentAlbum('all'))
+  }
+
+  if (media.length === 0 && currentAlbum !== 'all') {
+    return (
+      <Centered>
+        <Typography>
+          This album is empty
+        </Typography>
+        <Button onClick={handleDeleteAlbum}>Delete album</Button>
+      </Centered>
+    )
   }
 
   return (
