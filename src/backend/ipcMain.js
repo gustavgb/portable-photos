@@ -53,7 +53,6 @@ ipcMain.on('request-service-cancel', (event, arg) => {
 
 ipcMain.on('request-new-album', async (event, arg) => {
   console.log('Recieved new album request')
-  console.log(arg)
 
   try {
     await createAlbum(arg)
@@ -64,7 +63,6 @@ ipcMain.on('request-new-album', async (event, arg) => {
 
 ipcMain.on('request-update-album', async (event, arg) => {
   console.log('Recieved update album request')
-  console.log(arg)
 
   try {
     await updateAlbum(arg)
@@ -75,7 +73,6 @@ ipcMain.on('request-update-album', async (event, arg) => {
 
 ipcMain.on('request-delete-album', async (event, arg) => {
   console.log('Recieved delete album request')
-  console.log(arg)
 
   try {
     await deleteAlbum(arg)

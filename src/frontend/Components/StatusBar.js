@@ -46,7 +46,7 @@ const StatusBar = () => {
   }, [])
 
   const handleCancel = () => {
-    window.ipcSend('request-service-cancel')
+    window.ipcSend('request-service-cancel', status.cancelId)
   }
 
   return (
