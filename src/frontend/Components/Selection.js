@@ -4,6 +4,7 @@ import styled from 'styled-components'
 import Button from '../Blocks/Button'
 import { clearSelected } from '../actions'
 import Modal from './Modal'
+import ListItem from './ListItem'
 
 const Collapse = styled.div`
   position: sticky;
@@ -49,24 +50,6 @@ const DialogTitle = styled.h2`
   margin: 0 0 1rem;
 `
 
-const AlbumItem = styled.button`
-  transition: all .1s ease-out;
-  padding: 2rem 1rem;
-  cursor: pointer;
-  border: none;
-  background: transparent;
-  display: block;
-  width: 100%;
-  text-align: left;
-  font-size: ${props => props.theme.fontSize.small};
-
-  &:hover,
-  &:focus {
-    background-color: #ddd;
-    outline: none;
-  }
-`
-
 const Search = styled.input`
   padding: 1rem;
   width: 100%;
@@ -77,9 +60,10 @@ const Search = styled.input`
 
 const Selection = () => {
   const dispatch = useDispatch()
-  const album = useSelector(state => state.library.albums.find(album => album.id === state.library.currentAlbum) || {})
-  const media = album.media || []
+  const albums = useSelector(state => state.library.albums)
   const currentAlbum = useSelector(state => state.library.currentAlbum)
+  const album = albums.find(album => album.id === currentAlbum) || {}
+  const media = album.media || []
   const libraryLastUpdate = useSelector(state => state.library.lastUpdate)
   const numSelected = useMemo(() => media.filter(media => media.isSelected).length, [libraryLastUpdate])
   const [showAlbums, setShowAlbums] = useState(false)
@@ -93,6 +77,21 @@ const Selection = () => {
     window.ipcSend('request-new-album', {
       name: search,
       items: media.filter(media => media.isSelected).map(media => media.originalPath)
+    })
+
+    setShowAlbums(false)
+    dispatch(clearSelected())
+  }
+
+  const handleAddTo = (id) => {
+    const nextMedia = albums
+      .find(album => album.id === id).media
+      .concat(media.filter(media => media.isSelected))
+      .map(media => media.originalPath)
+
+    window.ipcSend('request-update-album', {
+      id,
+      items: Array.from(new Set(nextMedia))
     })
 
     setShowAlbums(false)
@@ -121,10 +120,18 @@ const Selection = () => {
             autoFocus
           />
           {search.length > 0 && (
-            <AlbumItem onClick={handleCreate}>
+            <ListItem onClick={handleCreate}>
               Create album: <strong>{search}</strong>
-            </AlbumItem>
+            </ListItem>
           )}
+          {albums.filter(album => album.id !== 'all').map(album => (
+            <ListItem
+              key={album.id}
+              onClick={() => handleAddTo(album.id)}
+            >
+              {album.name}
+            </ListItem>
+          ))}
         </Dialog>
       </Modal>
       <Collapse open={numSelected > 0}>

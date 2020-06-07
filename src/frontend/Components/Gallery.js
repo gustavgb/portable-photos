@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef, useMemo } from 'react'
 import styled from 'styled-components'
 import Thumbnail from './Thumbnail'
 import { useSelector, useDispatch } from 'react-redux'
-import { toggleMultiple, toggleSelected, setLightboxSelected, clearSelected, setCurrentAlbum } from '../actions'
+import { toggleMultiple, toggleSelected, setLightboxSelected, clearSelected, setCurrentAlbum, selectAll } from '../actions'
 import Typography from '../Blocks/Typography'
 import Button from '../Blocks/Button'
 
@@ -42,6 +42,7 @@ const Gallery = () => {
   const currentAlbum = useSelector(state => state.library.currentAlbum)
   const libraryLastUpdate = useSelector(state => state.library.lastUpdate)
   const keys = useSelector(state => state.keys)
+  const selectedIndex = useSelector(state => state.lightbox.selected)
   const [lastSelected, setLastSelected] = useState(-1)
   const [hovered, setHover] = useState(-1)
   const [columns, setColumns] = useState(0)
@@ -94,6 +95,21 @@ const Gallery = () => {
     window.addEventListener('scroll', onScroll)
     return () => window.removeEventListener('scroll', onScroll)
   }, [cellHeight, columns, window.scrollY, window.innerHeight])
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (keys.Control && e.key.toLowerCase() === 'a') {
+        e.preventDefault()
+        dispatch(selectAll())
+      } else if (e.key === 'Escape' && selectedIndex === -1) {
+        dispatch(clearSelected())
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  })
 
   const handleSelect = (index, prevSelected) => {
     if (!selectMultiple) {

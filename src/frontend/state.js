@@ -98,6 +98,25 @@ const reducer = (state = { ...defaultState }, action) => {
           )
         }
       }
+    case 'SELECT_ALL':
+      return {
+        ...state,
+        library: {
+          ...state.library,
+          lastUpdate: Date.now(),
+          albums: state.library.albums.map(album =>
+            album.id === state.library.currentAlbum
+              ? ({
+                ...album,
+                media: album.media.map((image) => ({
+                  ...image,
+                  isSelected: true
+                }))
+              })
+              : album
+          )
+        }
+      }
     case 'CLEAR_SELECTED':
       return {
         ...state,

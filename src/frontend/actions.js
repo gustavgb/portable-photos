@@ -33,4 +33,6 @@ export const toggleMultiple = (selectStart, selectEnd) => ({ type: 'TOGGLE_MULTI
 
 export const clearSelected = () => ({ type: 'CLEAR_SELECTED' })
 
+export const selectAll = () => ({ type: 'SELECT_ALL' })
+
 export const setCurrentAlbum = (id) => ({ type: 'VIEW_SET_CURRENT_ALBUM', id })

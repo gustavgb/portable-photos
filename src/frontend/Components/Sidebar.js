@@ -2,6 +2,7 @@ import React from 'react'
 import styled from 'styled-components'
 import { useSelector, useDispatch } from 'react-redux'
 import { setCurrentAlbum } from '../actions'
+import ListItem from './ListItem'
 
 const Container = styled.div`
   padding: 1rem;
@@ -10,24 +11,6 @@ const Container = styled.div`
   overflow-y: auto;
   position: sticky;
   top: 0;
-`
-
-const AlbumItem = styled.button`
-  transition: all .1s ease-out;
-  padding: 2rem 1rem;
-  cursor: pointer;
-  border: none;
-  background-color: ${props => props.selected ? '#ddd' : 'transparent'};
-  display: block;
-  width: 100%;
-  text-align: left;
-  font-size: ${props => props.theme.fontSize.body};
-
-  &:hover,
-  &:focus {
-    background-color: #ddd;
-    outline: none;
-  }
 `
 
 const Sidebar = () => {
@@ -43,13 +26,13 @@ const Sidebar = () => {
     <div>
       <Container>
         {albums.map(album => (
-          <AlbumItem
+          <ListItem
             key={album.id}
             selected={album.id === currentAlbum}
             onClick={() => handleSelect(album.id)}
           >
             {album.name}
-          </AlbumItem>
+          </ListItem>
         ))}
       </Container>
     </div>
